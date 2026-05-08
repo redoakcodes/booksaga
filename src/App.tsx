@@ -24,6 +24,7 @@ import "./App.css";
 
 const App: Component = () => {
   const [pendingCreate, setPendingCreate] = createSignal<string | null>(null);
+  const [viewMarkdown, setViewMarkdown] = createSignal(false);
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -34,6 +35,7 @@ const App: Component = () => {
     }
 
     setPendingCreate(null);
+    setViewMarkdown(false);
     const content = await readFile(project, section, filename);
     store.setOpenFile({ section, filename, content, dirty: false });
   }
@@ -134,10 +136,6 @@ const App: Component = () => {
 
   const isWikiOpen = () => store.openFile()?.section === "wiki" ?? false;
 
-  const showEditor = () => !!store.openFile();
-  const showPrompt = () => !store.openFile() && !!pendingCreate();
-  const showEmpty = () => !store.openFile() && !pendingCreate();
-
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
       <Show when={store.project()} fallback={<Welcome />}>
@@ -150,24 +148,44 @@ const App: Component = () => {
             pendingCreateLabel={pendingCreate()}
           />
           <main class="main-panel">
-            <Toolbar onSave={handleSave} />
-            <Show when={showEditor()}>
-              <Editor
-                fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
-                content={store.openFile()!.content}
-                onChange={handleChange}
-                onWikiLinkClick={isWikiOpen() ? handleWikiLinkClick : undefined}
-              />
-            </Show>
-            <Show when={showPrompt()}>
-              <CreatePrompt
-                label={pendingCreate()!}
-                onConfirm={handleConfirmCreate}
-                onDismiss={() => setPendingCreate(null)}
-              />
-            </Show>
-            <Show when={showEmpty()}>
-              <div class="no-file">Select a chapter from the sidebar</div>
+            <Toolbar
+              onSave={handleSave}
+              viewMarkdown={viewMarkdown()}
+              onToggleView={() => setViewMarkdown((v) => !v)}
+            />
+            <Show
+              when={store.openFile()}
+              fallback={
+                <Show
+                  when={pendingCreate()}
+                  fallback={<div class="no-file">Select a chapter from the sidebar</div>}
+                >
+                  <CreatePrompt
+                    label={pendingCreate()!}
+                    onConfirm={handleConfirmCreate}
+                    onDismiss={() => setPendingCreate(null)}
+                  />
+                </Show>
+              }
+            >
+              <Show
+                when={!viewMarkdown()}
+                fallback={
+                  <textarea
+                    class="markdown-source"
+                    value={store.openFile()?.content ?? ""}
+                    onInput={(e) => handleChange(e.currentTarget.value)}
+                    spellcheck={false}
+                  />
+                }
+              >
+                <Editor
+                  fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
+                  content={store.openFile()!.content}
+                  onChange={handleChange}
+                  onWikiLinkClick={isWikiOpen() ? handleWikiLinkClick : undefined}
+                />
+              </Show>
             </Show>
           </main>
           <Show when={isWikiOpen()}>

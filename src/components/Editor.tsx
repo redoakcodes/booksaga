@@ -31,7 +31,7 @@ const Editor: Component<Props> = (props) => {
 
   // createMemo absorbs same-string updates so the effect only fires when the
   // file identity actually changes, not on every content/dirty signal update.
-  const stableKey = createMemo(() => props.fileKey);
+  const stableKey = createMemo(() => props.fileKey || "");
   createEffect(on(stableKey, () => {
     view?.destroy();
     view = null;

@@ -10,6 +10,8 @@ import {
 
 interface Props {
   onSave: () => void;
+  viewMarkdown: boolean;
+  onToggleView: () => void;
 }
 
 type OpenMenu = "menu" | "format" | null;
@@ -57,9 +59,15 @@ const Toolbar: Component<Props> = (props) => {
           </button>
           <Show when={openMenu() === "menu"}>
             <div class="toolbar-dropdown">
-              <button class="toolbar-menu-item" onClick={() => run(props.onSave)}>
+              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onSave)}>
                 <span class="toolbar-item-label">Save</span>
                 <span class="toolbar-item-hint">Ctrl+S</span>
+              </button>
+              <div class="toolbar-divider" />
+              <button class="toolbar-menu-item" onClick={() => run(props.onToggleView)}>
+                <span class="toolbar-item-label">
+                  {props.viewMarkdown ? "View Formatted" : "View Markdown"}
+                </span>
               </button>
             </div>
           </Show>

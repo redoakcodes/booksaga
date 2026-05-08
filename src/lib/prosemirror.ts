@@ -49,7 +49,7 @@ export const editorSchema = new Schema({
     ],
   }),
   marks: baseSchema.spec.marks
-    .append("strikethrough", {
+    .addToEnd("strikethrough", {
       toDOM(): DOMOutputSpec { return ["s", 0]; },
       parseDOM: [{ tag: "s" }, { tag: "del" }],
     })
