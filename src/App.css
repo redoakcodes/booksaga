@@ -352,6 +352,27 @@ html, body, #root {
 
 .toolbar-icon-btn:hover { color: var(--text); border-color: var(--border); }
 
+.toolbar-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+/* Format dropdown items: label left, hint right on same line */
+.toolbar-fmt-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toolbar-fmt-item .toolbar-item-label { display: inline; }
+.toolbar-fmt-item .toolbar-item-hint { margin-top: 0; }
+
+.fmt-bold { font-weight: 700; }
+.fmt-italic { font-style: italic; }
+.fmt-strike { text-decoration: line-through; }
+
 /* Main panel */
 .main-panel {
   flex: 1;

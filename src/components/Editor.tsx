@@ -1,6 +1,7 @@
 import { createEffect, createMemo, on, onCleanup, onMount, type Component } from "solid-js";
 import { type EditorView } from "prosemirror-view";
 import { makeEditorView } from "../lib/prosemirror";
+import { registerView } from "../lib/editorCommands";
 import "prosemirror-view/style/prosemirror.css";
 
 interface Props {
@@ -23,6 +24,7 @@ const Editor: Component<Props> = (props) => {
       props.onChange,
       props.onWikiLinkClick,
     );
+    registerView(view);
   }
 
   onMount(create);
@@ -39,6 +41,7 @@ const Editor: Component<Props> = (props) => {
   onCleanup(() => {
     view?.destroy();
     view = null;
+    registerView(null);
   });
 
   return <div ref={container} class="editor-container" onClick={() => view?.focus()} />;
