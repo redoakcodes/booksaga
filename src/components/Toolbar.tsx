@@ -7,6 +7,7 @@ import {
   applyBlockquote,
   applyInlineCode,
 } from "../lib/editorCommands";
+import { modKeyLabel } from "../lib/platform";
 
 interface Props {
   onSave: () => void;
@@ -61,7 +62,7 @@ const Toolbar: Component<Props> = (props) => {
             <div class="toolbar-dropdown">
               <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onSave)}>
                 <span class="toolbar-item-label">Save</span>
-                <span class="toolbar-item-hint">Ctrl+S</span>
+                <span class="toolbar-item-hint">{modKeyLabel}S</span>
               </button>
               <div class="toolbar-divider" />
               <button class="toolbar-menu-item" onClick={() => run(props.onToggleView)}>

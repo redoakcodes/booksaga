@@ -14,5 +14,13 @@ const isTauri =
 const isMac =
   typeof navigator !== "undefined" && /^Mac/.test(navigator.platform);
 
+export { isMac };
+
 /** True only when running inside Tauri on macOS. */
 export const nativeSpellCheck = isTauri && isMac;
+
+/**
+ * Modifier key label for display in UI hints.
+ * "⌘" on macOS, "Ctrl+" on Windows/Linux.
+ */
+export const modKeyLabel = isMac ? "⌘" : "Ctrl+";

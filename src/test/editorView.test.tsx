@@ -111,6 +111,21 @@ describe("editor view toggle", () => {
     expect(document.querySelector(".editor-container")).toBeNull();
   });
 
+  it("shows a platform-appropriate save shortcut hint in the Menu", async () => {
+    store.setProject(fakeProject);
+    store.setOpenFile(fakeFile);
+    const user = userEvent.setup();
+    render(() => <App />);
+
+    await user.click(screen.getByText("Menu"));
+
+    // In the test env (happy-dom, non-Mac), modKeyLabel is "Ctrl+" → hint is "Ctrl+S".
+    // On macOS it would show "⌘S". Either way, the hint element must be present.
+    const hint = document.querySelector(".toolbar-item-hint");
+    expect(hint).toBeTruthy();
+    expect(hint?.textContent).toMatch(/^(⌘S|Ctrl\+S)$/);
+  });
+
   it("restores the rich-text editor after toggling back from markdown view", async () => {
     store.setProject(fakeProject);
     store.setOpenFile(fakeFile);
