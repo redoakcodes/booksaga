@@ -18,6 +18,7 @@ import {
   defaultMarkdownSerializer,
 } from "prosemirror-markdown";
 import MarkdownIt from "markdown-it";
+import { nativeSpellCheck } from "./platform";
 
 const WIKILINK_RE = /\[\[([^\][\n]+)\]\]/g;
 const STRIKETHROUGH_RE = /~~([^~\n]+)~~/g;
@@ -254,7 +255,7 @@ export function makeEditorView(
   view = new EditorView(container, {
     state,
     editable: () => editable,
-    attributes: { spellcheck: "true" },
+    attributes: { spellcheck: nativeSpellCheck ? "true" : "false" },
     dispatchTransaction(tr) {
       const next = view.state.apply(tr);
       view.updateState(next);

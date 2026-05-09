@@ -33,6 +33,13 @@ describe("makeEditorView (real ProseMirror)", () => {
     view.destroy();
   });
 
+  it("disables spellcheck outside Tauri on macOS (test env is neither)", () => {
+    const view = makeEditorView(container, "text", true, undefined, undefined);
+    const pmEl = container.querySelector(".ProseMirror") as HTMLElement;
+    expect(pmEl?.getAttribute("spellcheck")).toBe("false");
+    view.destroy();
+  });
+
   it("calls onChange when the document changes", () => {
     let changed = "";
     const view = makeEditorView(container, "initial", true, (md) => { changed = md; }, undefined);
