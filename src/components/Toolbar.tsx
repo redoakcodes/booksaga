@@ -15,6 +15,7 @@ interface Props {
   viewMarkdown: boolean;
   onToggleView: () => void;
   onNewWiki?: () => void;
+  onSettings?: () => void;
 }
 
 type OpenMenu = "menu" | "format" | null;
@@ -77,6 +78,10 @@ const Toolbar: Component<Props> = (props) => {
                 <span class="toolbar-item-label">
                   {props.viewMarkdown ? "View Formatted" : "View Markdown"}
                 </span>
+              </button>
+              <div class="toolbar-divider" />
+              <button class="toolbar-menu-item" onClick={() => run(() => props.onSettings?.())}>
+                <span class="toolbar-item-label">Settings</span>
               </button>
             </div>
           </Show>

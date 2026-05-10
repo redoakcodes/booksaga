@@ -16,6 +16,15 @@
   --sidebar-width: 220px;
   --status-height: 28px;
   --font-ui: system-ui, -apple-system, sans-serif;
+  --hover-bg-xs: var(--hover-bg-xs);
+  --hover-bg-sm: var(--hover-bg-sm);
+  --hover-bg-md: var(--hover-bg-md);
+  --hover-bg-lg: var(--hover-bg-lg);
+  --accent-bg-xs: rgba(92,156,245,0.10);
+  --accent-bg-sm: var(--accent-bg-sm);
+  --accent-bg-md: var(--accent-bg-md);
+  --accent-selection: rgba(92,156,245,0.30);
+  --accent-underline: rgba(92,156,245,0.35);
 }
 
 html, body, #root {
@@ -118,7 +127,7 @@ html, body, #root {
   transition: color 0.15s, background 0.15s;
 }
 
-.tab-btn:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.tab-btn:hover { color: var(--text); background: var(--hover-bg-xs); }
 .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 .file-list {
@@ -195,8 +204,8 @@ html, body, #root {
 .toc-expand-btn:hover { color: var(--text); }
 
 .toc-placeholder { cursor: pointer; color: var(--text-muted); font-style: italic; }
-.toc-placeholder:hover { background: rgba(255,255,255,0.04); color: var(--text); }
-.toc-placeholder.active { background: rgba(92,156,245,0.1); color: var(--accent); font-style: italic; }
+.toc-placeholder:hover { background: var(--hover-bg-xs); color: var(--text); }
+.toc-placeholder.active { background: var(--accent-bg-xs); color: var(--accent); font-style: italic; }
 
 .wiki-dir { cursor: pointer; }
 .wiki-dir-label { font-weight: 600; color: var(--text-heading); font-size: 12px; text-transform: none; }
@@ -248,8 +257,8 @@ html, body, #root {
   transition: background 0.1s;
 }
 
-.file-item:hover { background: rgba(255,255,255,0.06); }
-.file-item.active { background: rgba(92,156,245,0.15); color: var(--accent); }
+.file-item:hover { background: var(--hover-bg-md); }
+.file-item.active { background: var(--accent-bg-sm); color: var(--accent); }
 
 .file-empty {
   padding: 12px;
@@ -290,7 +299,7 @@ html, body, #root {
 }
 
 .toolbar-menu-btn:hover,
-.toolbar-menu-btn.active { color: var(--text); background: rgba(255,255,255,0.06); }
+.toolbar-menu-btn.active { color: var(--text); background: var(--hover-bg-md); }
 
 .toolbar-dropdown {
   position: absolute;
@@ -316,7 +325,7 @@ html, body, #root {
   transition: background 0.1s;
 }
 
-.toolbar-menu-item:hover { background: rgba(255,255,255,0.06); }
+.toolbar-menu-item:hover { background: var(--hover-bg-md); }
 
 .toolbar-item-label {
   display: block;
@@ -583,7 +592,7 @@ html, body, #root {
   transition: background 0.1s;
 }
 
-.welcome-recent-item:hover { background: rgba(255,255,255,0.06); color: var(--accent); }
+.welcome-recent-item:hover { background: var(--hover-bg-md); color: var(--accent); }
 
 /* Status bar download button */
 .status-download {
@@ -638,7 +647,7 @@ html, body, #root {
 }
 
 .ProseMirror code {
-  background: rgba(255,255,255,0.07);
+  background: var(--hover-bg-lg);
   border-radius: 3px;
   padding: 0.15em 0.35em;
   font-size: 0.88em;
@@ -646,7 +655,7 @@ html, body, #root {
 }
 
 .ProseMirror pre {
-  background: rgba(255,255,255,0.05);
+  background: var(--hover-bg-sm);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1em;
@@ -669,13 +678,13 @@ html, body, #root {
 .ProseMirror img { max-width: 100%; }
 
 /* Selection */
-.ProseMirror ::selection { background: rgba(92, 156, 245, 0.3); }
+.ProseMirror ::selection { background: var(--accent-selection); }
 
 /* Wiki links */
 .wikilink {
   color: var(--accent);
   cursor: pointer;
-  border-bottom: 1px solid rgba(92, 156, 245, 0.35);
+  border-bottom: 1px solid var(--accent-underline);
   transition: color 0.1s, border-color 0.1s;
 }
 
@@ -769,7 +778,7 @@ html, body, #root {
   transition: background 0.1s;
 }
 
-.backlinks-item:hover { background: rgba(255,255,255,0.06); color: var(--accent); }
+.backlinks-item:hover { background: var(--hover-bg-md); color: var(--accent); }
 
 .backlinks-missing {
   color: var(--text-muted);
@@ -861,7 +870,7 @@ html, body, #root {
   transition: background 0.12s, color 0.12s;
 }
 
-.new-modal-type-btn:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.new-modal-type-btn:hover { color: var(--text); background: var(--hover-bg-sm); }
 .new-modal-type-btn.active { background: var(--accent); color: #fff; }
 
 .new-modal-field { margin-bottom: 16px; }
@@ -911,8 +920,8 @@ html, body, #root {
   border-radius: 4px;
 }
 
-.new-modal-dir-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
-.new-modal-dir-item.selected { background: rgba(92,156,245,0.18); color: var(--accent); }
+.new-modal-dir-item:hover { background: var(--hover-bg-sm); color: var(--text); }
+.new-modal-dir-item.selected { background: var(--accent-bg-md); color: var(--accent); }
 
 .new-modal-dir-expand {
   background: none;
@@ -965,7 +974,7 @@ html, body, #root {
   cursor: pointer;
 }
 
-.ctx-menu-item:hover { background: rgba(255,255,255,0.07); color: var(--text-heading); }
+.ctx-menu-item:hover { background: var(--hover-bg-lg); color: var(--text-heading); }
 .ctx-menu-item-danger { color: #e74c3c; }
 .ctx-menu-item-danger:hover { color: #ff6b6b; background: rgba(231,76,60,0.12); }
 
@@ -985,3 +994,27 @@ html, body, #root {
 .modal-body-sub { color: var(--text-muted); margin-top: 6px; }
 
 .modal-body strong { color: var(--text-heading); }
+
+/* ── Light theme ── */
+[data-theme="light"] {
+  --bg: #f8f9fb;
+  --bg-sidebar: #eef0f4;
+  --bg-card: #ffffff;
+  --border: #d0d4de;
+  --text: #2c3040;
+  --text-muted: #6b7280;
+  --text-heading: #111318;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --danger: #dc2626;
+  --dirty: #b45309;
+  --hover-bg-xs: rgba(0,0,0,0.03);
+  --hover-bg-sm: rgba(0,0,0,0.04);
+  --hover-bg-md: rgba(0,0,0,0.06);
+  --hover-bg-lg: rgba(0,0,0,0.08);
+  --accent-bg-xs: rgba(37,99,235,0.08);
+  --accent-bg-sm: rgba(37,99,235,0.12);
+  --accent-bg-md: rgba(37,99,235,0.16);
+  --accent-selection: rgba(37,99,235,0.20);
+  --accent-underline: rgba(37,99,235,0.40);
+}

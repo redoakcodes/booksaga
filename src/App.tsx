@@ -1,4 +1,4 @@
-import { createSignal, Show, type Component } from "solid-js";
+import { createEffect, createSignal, Show, type Component } from "solid-js";
 import { store } from "./store";
 import type { Section } from "./store";
 import Welcome from "./components/Welcome";
@@ -23,7 +23,9 @@ import {
   wikiFilenameForTitle,
 } from "./lib/project";
 import WikiNewModal from "./components/WikiNewModal";
+import SettingsModal from "./components/SettingsModal";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
+import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
 import "./App.css";
 
 const App: Component = () => {
@@ -32,6 +34,17 @@ const App: Component = () => {
   const [wikiNewOpen, setWikiNewOpen] = createSignal(false);
   const [wikiNewInitialDir, setWikiNewInitialDir] = createSignal("");
   const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir"; fileCount: number } | null>(null);
+  const [settingsOpen, setSettingsOpen] = createSignal(false);
+  const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
+
+  createEffect(() => {
+    const project = store.project();
+    if (!project) return;
+    loadSettings(project.fs).then((s) => {
+      setAppSettings(s);
+      applyTheme(s.theme);
+    });
+  });
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -200,6 +213,16 @@ const App: Component = () => {
     }
   }
 
+  async function handleSaveSettings(theme: AppSettings["theme"]) {
+    const project = store.project();
+    if (!project) return;
+    const newSettings = { ...appSettings(), theme };
+    await saveSettings(project.fs, newSettings);
+    setAppSettings(newSettings);
+    applyTheme(theme);
+    setSettingsOpen(false);
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
@@ -228,6 +251,7 @@ const App: Component = () => {
               viewMarkdown={viewMarkdown()}
               onToggleView={() => setViewMarkdown((v) => !v)}
               onNewWiki={() => handleOpenWikiNew()}
+              onSettings={() => setSettingsOpen(true)}
             />
             <Show
               when={store.openFile()}
@@ -280,6 +304,13 @@ const App: Component = () => {
             initialDir={wikiNewInitialDir()}
             onConfirm={handleCreateWikiEntry}
             onCancel={() => setWikiNewOpen(false)}
+          />
+        </Show>
+        <Show when={settingsOpen()}>
+          <SettingsModal
+            currentTheme={appSettings().theme}
+            onSave={handleSaveSettings}
+            onClose={() => setSettingsOpen(false)}
           />
         </Show>
         <Show when={pendingDelete()}>

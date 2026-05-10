@@ -49,7 +49,7 @@ import type { ProjectModel } from "../lib/project";
 // ---------------------------------------------------------------------------
 
 const fakeProject: ProjectModel = {
-  fs: {} as any,
+  fs: { readFile: async () => null, writeFile: async () => {} } as any,
   config: { project: { title: "Test Project", author: "" } } as any,
   toc: { rootChapters: [] } as any,
   chapters: [],
