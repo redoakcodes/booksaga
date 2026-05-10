@@ -54,6 +54,7 @@ const fakeProject: ProjectModel = {
   toc: { rootChapters: [] } as any,
   chapters: [],
   wikiFiles: [],
+  wikiDirs: [],
   exerciseFiles: [],
   wikiIndex: { forward: new Map(), backward: new Map(), pages: [] },
 };

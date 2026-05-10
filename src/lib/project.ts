@@ -13,6 +13,7 @@ export interface ProjectModel {
   toc: TocParser;
   chapters: string[];
   wikiFiles: string[];
+  wikiDirs: string[];
   exerciseFiles: string[];
   wikiIndex: WikiIndex;
 }
@@ -27,6 +28,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   const chapters = toc.orderedChapters(allManuscriptFiles);
 
   const wikiFiles = await fs.listMarkdownFiles(WIKI_DIR);
+  const wikiDirs = await fs.listSubdirs(WIKI_DIR);
   const exerciseFiles = await fs.listMarkdownFiles(EXERCISES_DIR);
 
   const wikiContents = new Map<string, string>();
@@ -36,7 +38,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   }
   const wikiIndex = buildWikiIndex(wikiContents);
 
-  return { fs, config, toc, chapters, wikiFiles, exerciseFiles, wikiIndex };
+  return { fs, config, toc, chapters, wikiFiles, wikiDirs, exerciseFiles, wikiIndex };
 }
 
 export async function readFile(

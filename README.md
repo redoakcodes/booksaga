@@ -1,28 +1,16 @@
-## Usage
+# Booksaga
 
-```bash
-$ npm install # or pnpm install or yarn install
-```
+Booksaga is a manuscript editor with built in wiki and writing exercises. It uses markdown as it's primary formatting and data structure. 
 
-### Learn more on the [Solid Website](https://solidjs.com) and come chat with us on our [Discord](https://discord.com/invite/solidjs)
+## Custom Markdown
 
-## Available Scripts
+Booksaga uses standard markdown with the addition of:
+- [[_path_]] - Backlinks. Used to connect wiki pages.
+- ~~_striken text_~~ - strikethrough
+- [^_id_] - footnote
+- [^_id_]: - footnote text
 
-In the project directory, you can run:
+## Running
 
-### `npm run dev`
-
-Runs the app in the development mode.<br>
-Open [http://localhost:5173](http://localhost:5173) to view it in the browser.
-
-### `npm run build`
-
-Builds the app for production to the `dist` folder.<br>
-It correctly bundles Solid in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
-
-## Deployment
-
-Learn more about deploying your application with the [documentations](https://vite.dev/guide/static-deploy.html)
+Running in dev:
+`npm run dev tauri`

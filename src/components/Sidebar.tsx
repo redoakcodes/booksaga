@@ -67,6 +67,7 @@ const Sidebar: Component<Props> = (props) => {
         <Show when={store.activeSection() === "wiki"}>
           <WikiTree
             files={project()?.wikiFiles ?? []}
+            dirs={project()?.wikiDirs ?? []}
             activeFilename={store.openFile()?.section === "wiki" ? store.openFile()?.filename : null}
             onSelect={(path) => props.onFileSelect("wiki", path)}
             onNew={props.onNewWikiEntry}

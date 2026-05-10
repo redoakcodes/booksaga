@@ -8,16 +8,9 @@ interface DirNode {
   children: DirNode[];
 }
 
-function buildDirTree(files: string[]): DirNode[] {
-  const allPaths = new Set<string>();
-  for (const f of files) {
-    const parts = f.split("/");
-    for (let i = 1; i < parts.length; i++) {
-      allPaths.add(parts.slice(0, i).join("/"));
-    }
-  }
+function buildDirTree(dirs: string[]): DirNode[] {
   const root: DirNode[] = [];
-  for (const path of Array.from(allPaths).sort()) {
+  for (const path of [...dirs].sort()) {
     const parts = path.split("/");
     let nodes = root;
     for (let i = 0; i < parts.length; i++) {
@@ -77,7 +70,7 @@ const DirItem: Component<{
 };
 
 export interface WikiNewModalProps {
-  wikiFiles: string[];
+  wikiDirs: string[];
   initialDir?: string;
   onConfirm: (type: EntryType, name: string, parentDir: string) => void;
   onCancel: () => void;
@@ -88,7 +81,7 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
   const [name, setName] = createSignal("");
   const [selectedDir, setSelectedDir] = createSignal(props.initialDir ?? "");
 
-  const dirTree = createMemo(() => buildDirTree(props.wikiFiles));
+  const dirTree = createMemo(() => buildDirTree(props.wikiDirs));
 
   function handleSubmit(e: Event) {
     e.preventDefault();

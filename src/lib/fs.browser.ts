@@ -57,6 +57,36 @@ export class BrowserFileSystem implements IFileSystem {
     await collectMarkdownFiles(sub, "", names); // errors here propagate up
     return names.sort();
   }
+
+  async listSubdirs(subdir: string): Promise<string[]> {
+    const paths: string[] = [];
+    let sub: FileSystemDirectoryHandle;
+    try {
+      sub = await this.handle.getDirectoryHandle(subdir);
+    } catch {
+      return [];
+    }
+    await collectSubdirs(sub, "", paths);
+    return paths.sort();
+  }
+}
+
+async function collectSubdirs(
+  dir: FileSystemDirectoryHandle,
+  prefix: string,
+  out: string[],
+): Promise<void> {
+  const iter = dir.entries();
+  for (;;) {
+    const { done, value } = await iter.next();
+    if (done) break;
+    const [name, handle] = value;
+    if (handle.kind === "directory") {
+      const relativeName = prefix ? `${prefix}/${name}` : name;
+      out.push(relativeName);
+      await collectSubdirs(handle as FileSystemDirectoryHandle, relativeName, out);
+    }
+  }
 }
 
 async function collectMarkdownFiles(

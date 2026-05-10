@@ -13,8 +13,8 @@
     "windows": [
       {
         "title": "BookSaga",
-        "width": 800,
-        "height": 600,
+        "width": 815,
+        "height": 800,
         "resizable": true,
         "fullscreen": false
       }

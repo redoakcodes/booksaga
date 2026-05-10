@@ -36,6 +36,19 @@ class MockFileSystem implements IFileSystem {
       .map((k) => k.slice(prefix.length))
       .sort();
   }
+
+  async listSubdirs(subdir: string): Promise<string[]> {
+    const prefix = subdir + "/";
+    const dirs = new Set<string>();
+    for (const key of this.files.keys()) {
+      if (!key.startsWith(prefix)) continue;
+      const parts = key.slice(prefix.length).split("/");
+      for (let i = 1; i < parts.length; i++) {
+        dirs.add(parts.slice(0, i).join("/"));
+      }
+    }
+    return Array.from(dirs).sort();
+  }
 }
 
 // ---------------------------------------------------------------------------

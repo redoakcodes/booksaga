@@ -20,23 +20,37 @@ interface TreeFile {
 }
 type TreeNode = TreeDir | TreeFile;
 
-function buildTree(paths: string[]): TreeNode[] {
+function buildTree(files: string[], dirs: string[]): TreeNode[] {
   const root: TreeNode[] = [];
-  for (const path of paths) {
-    const parts = path.split("/");
-    let nodes = root;
+
+  function ensureDir(nodes: TreeNode[], parts: string[], upTo: number): TreeNode[] {
+    let current = nodes;
     let currentPath = "";
-    for (let i = 0; i < parts.length - 1; i++) {
+    for (let i = 0; i < upTo; i++) {
       currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
-      let dir = nodes.find((n): n is TreeDir => n.kind === "dir" && n.name === parts[i]);
+      let dir = current.find((n): n is TreeDir => n.kind === "dir" && n.name === parts[i]);
       if (!dir) {
         dir = { kind: "dir", name: parts[i], path: currentPath, children: [] };
-        nodes.push(dir);
+        current.push(dir);
       }
-      nodes = dir.children;
+      current = dir.children;
     }
-    nodes.push({ kind: "file", name: parts[parts.length - 1], path });
+    return current;
   }
+
+  // Pre-create nodes for all known directories (so empty dirs appear).
+  for (const dir of [...dirs].sort()) {
+    const parts = dir.split("/");
+    ensureDir(root, parts, parts.length);
+  }
+
+  // Add files, creating any intermediate dir nodes not already present.
+  for (const path of files) {
+    const parts = path.split("/");
+    const siblings = ensureDir(root, parts, parts.length - 1);
+    siblings.push({ kind: "file", name: parts[parts.length - 1], path });
+  }
+
   return root;
 }
 
@@ -119,13 +133,14 @@ interface CtxMenu {
 
 interface Props {
   files: string[];
+  dirs: string[];
   activeFilename?: string | null;
   onSelect: (path: string) => void;
   onNew?: (parentDir: string) => void;
 }
 
 const WikiTree: Component<Props> = (props) => {
-  const tree = () => buildTree(props.files);
+  const tree = () => buildTree(props.files, props.dirs);
   const [ctxMenu, setCtxMenu] = createSignal<CtxMenu | null>(null);
 
   createEffect(() => {

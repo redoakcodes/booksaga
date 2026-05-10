@@ -151,6 +151,7 @@ const App: Component = () => {
       await handleFileSelect("wiki", filename);
     } else {
       await createWikiFolder(project, parentDir, name);
+      store.setProject(await loadProject(project.fs));
     }
   }
 
@@ -229,7 +230,7 @@ const App: Component = () => {
         <StatusBar />
         <Show when={wikiNewOpen()}>
           <WikiNewModal
-            wikiFiles={store.project()?.wikiFiles ?? []}
+            wikiDirs={store.project()?.wikiDirs ?? []}
             initialDir={wikiNewInitialDir()}
             onConfirm={handleCreateWikiEntry}
             onCancel={() => setWikiNewOpen(false)}
