@@ -25,6 +25,12 @@ const SettingsModal: Component<Props> = (props) => {
           >
             <option value="dark">Dark</option>
             <option value="light">Light</option>
+            <option value="scifi">Sci-Fi</option>
+            <option value="noire">Noire</option>
+            <option value="fantasy">Fantasy</option>
+            <option value="cyberpunk">Cyberpunk</option>
+            <option value="romance">Romance</option>
+            <option value="horror">Horror</option>
           </select>
         </div>
 

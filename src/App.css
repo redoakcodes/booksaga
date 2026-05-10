@@ -995,6 +995,11 @@ html, body, #root {
 
 .modal-body strong { color: var(--text-heading); }
 
+/* ── Theme blocks ──────────────────────────────────────────────────────────
+   Dark is the :root default. All other themes override only what differs.
+   Light-background themes must also override --hover-bg-* variables.
+   ──────────────────────────────────────────────────────────────────────── */
+
 /* ── Light theme ── */
 [data-theme="light"] {
   --bg: #f8f9fb;
@@ -1017,4 +1022,128 @@ html, body, #root {
   --accent-bg-md: rgba(37,99,235,0.16);
   --accent-selection: rgba(37,99,235,0.20);
   --accent-underline: rgba(37,99,235,0.40);
+}
+
+/* ── Sci-Fi theme (Millennium Falcon cockpit) ── */
+[data-theme="scifi"] {
+  --bg: #0c0d0f;
+  --bg-sidebar: #101214;
+  --bg-card: #181a1e;
+  --border: #2a2e36;
+  --text: #c8a060;
+  --text-muted: #6a5830;
+  --text-heading: #e0b870;
+  --accent: #e89028;
+  --accent-hover: #f0a840;
+  --danger: #cc3322;
+  --dirty: #6aaa44;
+  --accent-bg-xs: rgba(232,144,40,0.08);
+  --accent-bg-sm: rgba(232,144,40,0.14);
+  --accent-bg-md: rgba(232,144,40,0.20);
+  --accent-selection: rgba(232,144,40,0.28);
+  --accent-underline: rgba(232,144,40,0.40);
+}
+
+/* ── Noire theme (1920s detective / Dark Academia) ── */
+[data-theme="noire"] {
+  --bg: #19150e;
+  --bg-sidebar: #131009;
+  --bg-card: #221b12;
+  --border: #3a3028;
+  --text: #c8a870;
+  --text-muted: #78685a;
+  --text-heading: #ddc090;
+  --accent: #b88c30;
+  --accent-hover: #ccaa48;
+  --danger: #883020;
+  --dirty: #786030;
+  --accent-bg-xs: rgba(184,140,48,0.08);
+  --accent-bg-sm: rgba(184,140,48,0.14);
+  --accent-bg-md: rgba(184,140,48,0.20);
+  --accent-selection: rgba(184,140,48,0.28);
+  --accent-underline: rgba(184,140,48,0.40);
+}
+
+/* ── Fantasy theme (The Shire — verdant) ── */
+[data-theme="fantasy"] {
+  --bg: #161d12;
+  --bg-sidebar: #111810;
+  --bg-card: #1d2619;
+  --border: #2d3e24;
+  --text: #b0c890;
+  --text-muted: #5a7040;
+  --text-heading: #d0e8a8;
+  --accent: #74b834;
+  --accent-hover: #88cc48;
+  --danger: #c03828;
+  --dirty: #d4a428;
+  --accent-bg-xs: rgba(116,184,52,0.08);
+  --accent-bg-sm: rgba(116,184,52,0.14);
+  --accent-bg-md: rgba(116,184,52,0.20);
+  --accent-selection: rgba(116,184,52,0.28);
+  --accent-underline: rgba(116,184,52,0.40);
+}
+
+/* ── Cyberpunk theme (Blade Runner / neon synthwave) ── */
+[data-theme="cyberpunk"] {
+  --bg: #09070e;
+  --bg-sidebar: #060508;
+  --bg-card: #100e18;
+  --border: #241c34;
+  --text: #baaed0;
+  --text-muted: #5a4870;
+  --text-heading: #dcd0f4;
+  --accent: #ff2d78;
+  --accent-hover: #ff5290;
+  --danger: #ff3010;
+  --dirty: #00dcf0;
+  --accent-bg-xs: rgba(255,45,120,0.08);
+  --accent-bg-sm: rgba(255,45,120,0.14);
+  --accent-bg-md: rgba(255,45,120,0.20);
+  --accent-selection: rgba(255,45,120,0.25);
+  --accent-underline: rgba(255,45,120,0.40);
+}
+
+/* ── Romance theme (New England beachside) ── */
+[data-theme="romance"] {
+  --bg: #f5f0e8;
+  --bg-sidebar: #ece5d8;
+  --bg-card: #fdfaf5;
+  --border: #d4c8b4;
+  --text: #3c2e22;
+  --text-muted: #8a7860;
+  --text-heading: #221810;
+  --accent: #3878a0;
+  --accent-hover: #2a6890;
+  --danger: #c04030;
+  --dirty: #c06830;
+  --hover-bg-xs: rgba(0,0,0,0.03);
+  --hover-bg-sm: rgba(0,0,0,0.04);
+  --hover-bg-md: rgba(0,0,0,0.06);
+  --hover-bg-lg: rgba(0,0,0,0.08);
+  --accent-bg-xs: rgba(56,120,160,0.08);
+  --accent-bg-sm: rgba(56,120,160,0.13);
+  --accent-bg-md: rgba(56,120,160,0.18);
+  --accent-selection: rgba(56,120,160,0.22);
+  --accent-underline: rgba(56,120,160,0.40);
+}
+
+/* ── Horror theme (Aliens 1986 / Dead Space) ── */
+[data-theme="horror"] {
+  --bg: #030503;
+  --bg-sidebar: #020402;
+  --bg-card: #070c07;
+  --border: #0c1a0c;
+  --text: #00aa38;
+  --text-muted: #007828;
+  --text-heading: #00d848;
+  --accent: #ff6600;
+  --accent-hover: #ff8020;
+  --danger: #ff1100;
+  --dirty: #ffcc00;
+  --accent-bg-xs: rgba(255,102,0,0.08);
+  --accent-bg-sm: rgba(255,102,0,0.14);
+  --accent-bg-md: rgba(255,102,0,0.20);
+  --accent-selection: rgba(0,170,56,0.28);
+  --accent-underline: rgba(255,102,0,0.45);
 }

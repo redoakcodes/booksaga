@@ -1,6 +1,14 @@
 import type { IFileSystem } from "./filesystem";
 
-export type Theme = "light" | "dark";
+export type Theme =
+  | "dark"
+  | "light"
+  | "scifi"
+  | "noire"
+  | "fantasy"
+  | "cyberpunk"
+  | "romance"
+  | "horror";
 
 export interface AppSettings {
   theme: Theme;
@@ -9,12 +17,16 @@ export interface AppSettings {
 const SETTINGS_FILE = "booksaga.json";
 const DEFAULTS: AppSettings = { theme: "dark" };
 
+const VALID_THEMES = new Set<string>([
+  "dark", "light", "scifi", "noire", "fantasy", "cyberpunk", "romance", "horror",
+]);
+
 export async function loadSettings(fs: IFileSystem): Promise<AppSettings> {
   const raw = await fs.readFile(SETTINGS_FILE);
   if (!raw) return { ...DEFAULTS };
   try {
     const parsed = JSON.parse(raw);
-    return { theme: parsed.theme === "light" ? "light" : "dark" };
+    return { theme: VALID_THEMES.has(parsed.theme) ? (parsed.theme as Theme) : "dark" };
   } catch {
     return { ...DEFAULTS };
   }
@@ -25,9 +37,9 @@ export async function saveSettings(fs: IFileSystem, settings: AppSettings): Prom
 }
 
 export function applyTheme(theme: Theme): void {
-  if (theme === "light") {
-    document.documentElement.setAttribute("data-theme", "light");
-  } else {
+  if (theme === "dark") {
     document.documentElement.removeAttribute("data-theme");
+  } else {
+    document.documentElement.setAttribute("data-theme", theme);
   }
 }
