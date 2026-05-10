@@ -947,4 +947,6 @@ html, body, #root {
   margin: 0 0 4px;
 }
 
+.modal-body-sub { color: var(--text-muted); margin-top: 6px; }
+
 .modal-body strong { color: var(--text-heading); }

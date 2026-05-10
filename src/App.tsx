@@ -31,7 +31,7 @@ const App: Component = () => {
   const [viewMarkdown, setViewMarkdown] = createSignal(false);
   const [wikiNewOpen, setWikiNewOpen] = createSignal(false);
   const [wikiNewInitialDir, setWikiNewInitialDir] = createSignal("");
-  const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir" } | null>(null);
+  const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir"; fileCount: number } | null>(null);
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -135,15 +135,17 @@ const App: Component = () => {
   }
 
   function handleWikiDelete(path: string, kind: "file" | "dir") {
-    if (kind === "dir") {
-      setPendingDelete({ path, kind });
-    } else {
-      void handleConfirmDelete({ path, kind });
-    }
+    const project = store.project();
+    if (!project) return;
+    const fileCount =
+      kind === "dir"
+        ? project.wikiFiles.filter((f) => f.startsWith(path + "/")).length
+        : 0;
+    setPendingDelete({ path, kind, fileCount });
   }
 
-  async function handleConfirmDelete(target?: { path: string; kind: "file" | "dir" }) {
-    const t = target ?? pendingDelete();
+  async function handleConfirmDelete() {
+    const t = pendingDelete();
     if (!t) return;
     const project = store.project();
     if (!project) return;
@@ -281,23 +283,42 @@ const App: Component = () => {
           />
         </Show>
         <Show when={pendingDelete()}>
-          <div class="modal-overlay" onClick={() => setPendingDelete(null)}>
-            <div class="modal-box" onClick={(e) => e.stopPropagation()}>
-              <h2 class="modal-title">Delete Folder</h2>
-              <p class="modal-body">
-                Delete <strong>{pendingDelete()!.path}</strong> and all its contents?
-                This cannot be undone.
-              </p>
-              <div class="modal-actions">
-                <button class="btn-secondary" onClick={() => setPendingDelete(null)}>
-                  Cancel
-                </button>
-                <button class="btn-danger" onClick={() => handleConfirmDelete()}>
-                  Delete
-                </button>
+          {(() => {
+            const pd = pendingDelete()!;
+            const rawName = pd.path.split("/").pop() ?? pd.path;
+            const displayName =
+              pd.kind === "file"
+                ? rawName.replace(/\.md$/, "").replace(/[-_]/g, " ")
+                : rawName;
+            const hasContents = pd.fileCount > 0;
+            const title = pd.kind === "file" ? "Delete File" : "Delete Folder";
+            const btnLabel = hasContents ? "Delete All" : "Delete";
+            const extra =
+              hasContents
+                ? `${pd.fileCount} additional file${pd.fileCount === 1 ? "" : "s"} will be deleted along with this folder.`
+                : null;
+            return (
+              <div class="modal-overlay" onClick={() => setPendingDelete(null)}>
+                <div class="modal-box" onClick={(e) => e.stopPropagation()}>
+                  <h2 class="modal-title">{title}</h2>
+                  <p class="modal-body">
+                    Are you sure you want to delete <strong>{displayName}</strong>?
+                  </p>
+                  <Show when={extra}>
+                    <p class="modal-body modal-body-sub">{extra}</p>
+                  </Show>
+                  <div class="modal-actions">
+                    <button class="btn-secondary" onClick={() => setPendingDelete(null)}>
+                      Cancel
+                    </button>
+                    <button class="btn-primary" onClick={() => handleConfirmDelete()}>
+                      {btnLabel}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </Show>
       </Show>
     </div>

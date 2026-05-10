@@ -209,7 +209,7 @@ const WikiTree: Component<Props> = (props) => {
           <button class="ctx-menu-item" onClick={handleNew}>New</button>
           <Show when={ctxMenu()!.targetPath !== ""}>
             <div class="ctx-menu-divider" />
-            <button class="ctx-menu-item ctx-menu-item-danger" onClick={handleDelete}>
+            <button class="ctx-menu-item" onClick={handleDelete}>
               Delete
             </button>
           </Show>
