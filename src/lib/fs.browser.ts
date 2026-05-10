@@ -46,6 +46,14 @@ export class BrowserFileSystem implements IFileSystem {
     await current.removeEntry(pathParts[pathParts.length - 1]);
   }
 
+  async deleteDir(pathParts: string[]): Promise<void> {
+    let current = this.handle;
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      current = await current.getDirectoryHandle(pathParts[i]);
+    }
+    await current.removeEntry(pathParts[pathParts.length - 1], { recursive: true });
+  }
+
   async listMarkdownFiles(subdir: string): Promise<string[]> {
     const names: string[] = [];
     let sub: FileSystemDirectoryHandle;

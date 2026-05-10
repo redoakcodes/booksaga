@@ -150,6 +150,20 @@ export async function renameWikiFile(
   }
 }
 
+/** Delete a wiki file or directory. */
+export async function deleteWikiEntry(
+  model: ProjectModel,
+  path: string,
+  kind: "file" | "dir",
+): Promise<void> {
+  const parts = [WIKI_DIR, ...path.split("/")];
+  if (kind === "file") {
+    await model.fs.deleteFile(parts);
+  } else {
+    await model.fs.deleteDir(parts);
+  }
+}
+
 /** Create a new wiki file and return its relative path under wiki/. */
 export async function createWikiFile(
   model: ProjectModel,

@@ -13,6 +13,8 @@ export interface IFileSystem {
   listSubdirs(subdir: string): Promise<string[]>;
   /** Delete a file by path parts relative to the project root. */
   deleteFile(pathParts: string[]): Promise<void>;
+  /** Delete a directory and all its contents. */
+  deleteDir(pathParts: string[]): Promise<void>;
   /** How this FS is backed — drives UI decisions like the download button. */
   readonly mode: StorageMode;
   /** Display name of the project root directory. */

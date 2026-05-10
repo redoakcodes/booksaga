@@ -510,6 +510,19 @@ html, body, #root {
 .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
 .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.btn-danger {
+  padding: 10px 20px;
+  background: #c0392b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #e74c3c; }
+
 .welcome-error {
   margin-top: 16px;
   color: var(--danger);
@@ -918,3 +931,20 @@ html, body, #root {
 }
 
 .ctx-menu-item:hover { background: rgba(255,255,255,0.07); color: var(--text-heading); }
+.ctx-menu-item-danger { color: #e74c3c; }
+.ctx-menu-item-danger:hover { color: #ff6b6b; background: rgba(231,76,60,0.12); }
+
+.ctx-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 3px 0;
+}
+
+.modal-body {
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0 0 4px;
+}
+
+.modal-body strong { color: var(--text-heading); }

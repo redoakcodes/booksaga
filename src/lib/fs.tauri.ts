@@ -40,6 +40,11 @@ export class TauriFileSystem implements IFileSystem {
     await remove(filePath);
   }
 
+  async deleteDir(pathParts: string[]): Promise<void> {
+    const dirPath = await join(this.rootPath, ...pathParts);
+    await remove(dirPath, { recursive: true });
+  }
+
   async listMarkdownFiles(subdir: string): Promise<string[]> {
     const names: string[] = [];
     const subdirPath = await join(this.rootPath, subdir);

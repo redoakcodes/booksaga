@@ -18,6 +18,7 @@ import {
   renameWikiFile,
   createWikiFile,
   createWikiFolder,
+  deleteWikiEntry,
   extractH1,
   wikiFilenameForTitle,
 } from "./lib/project";
@@ -30,6 +31,7 @@ const App: Component = () => {
   const [viewMarkdown, setViewMarkdown] = createSignal(false);
   const [wikiNewOpen, setWikiNewOpen] = createSignal(false);
   const [wikiNewInitialDir, setWikiNewInitialDir] = createSignal("");
+  const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir" } | null>(null);
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -132,6 +134,46 @@ const App: Component = () => {
     store.patchOpenFile({ content: markdown, dirty: true });
   }
 
+  function handleWikiDelete(path: string, kind: "file" | "dir") {
+    if (kind === "dir") {
+      setPendingDelete({ path, kind });
+    } else {
+      void handleConfirmDelete({ path, kind });
+    }
+  }
+
+  async function handleConfirmDelete(target?: { path: string; kind: "file" | "dir" }) {
+    const t = target ?? pendingDelete();
+    if (!t) return;
+    const project = store.project();
+    if (!project) return;
+    setPendingDelete(null);
+
+    await deleteWikiEntry(project, t.path, t.kind);
+
+    // Close the open file if it was deleted or lived inside the deleted dir.
+    const open = store.openFile();
+    if (open?.section === "wiki") {
+      const affected =
+        t.kind === "file"
+          ? open.filename === t.path
+          : open.filename === t.path || open.filename.startsWith(t.path + "/");
+      if (affected) store.setOpenFile(null);
+    }
+
+    // Optimistically update the project model.
+    const prefix = t.path + "/";
+    store.setProject({
+      ...project,
+      wikiFiles: project.wikiFiles.filter(
+        (f) => f !== t.path && !f.startsWith(prefix),
+      ),
+      wikiDirs: project.wikiDirs.filter(
+        (d) => d !== t.path && !d.startsWith(prefix),
+      ),
+    });
+  }
+
   function handleOpenWikiNew(dir = "") {
     setWikiNewInitialDir(dir);
     setWikiNewOpen(true);
@@ -176,6 +218,7 @@ const App: Component = () => {
             onPlaceholderClick={handlePlaceholderClick}
             pendingCreateLabel={pendingCreate()}
             onNewWikiEntry={handleOpenWikiNew}
+            onDeleteWikiEntry={handleWikiDelete}
           />
           <main class="main-panel">
             <Toolbar
@@ -236,6 +279,25 @@ const App: Component = () => {
             onConfirm={handleCreateWikiEntry}
             onCancel={() => setWikiNewOpen(false)}
           />
+        </Show>
+        <Show when={pendingDelete()}>
+          <div class="modal-overlay" onClick={() => setPendingDelete(null)}>
+            <div class="modal-box" onClick={(e) => e.stopPropagation()}>
+              <h2 class="modal-title">Delete Folder</h2>
+              <p class="modal-body">
+                Delete <strong>{pendingDelete()!.path}</strong> and all its contents?
+                This cannot be undone.
+              </p>
+              <div class="modal-actions">
+                <button class="btn-secondary" onClick={() => setPendingDelete(null)}>
+                  Cancel
+                </button>
+                <button class="btn-danger" onClick={() => handleConfirmDelete()}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
         </Show>
       </Show>
     </div>

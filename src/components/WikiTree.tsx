@@ -38,13 +38,11 @@ function buildTree(files: string[], dirs: string[]): TreeNode[] {
     return current;
   }
 
-  // Pre-create nodes for all known directories (so empty dirs appear).
   for (const dir of [...dirs].sort()) {
     const parts = dir.split("/");
     ensureDir(root, parts, parts.length);
   }
 
-  // Add files, creating any intermediate dir nodes not already present.
   for (const path of files) {
     const parts = path.split("/");
     const siblings = ensureDir(root, parts, parts.length - 1);
@@ -58,21 +56,27 @@ function displayName(name: string): string {
   return name.replace(/\.md$/, "").replace(/[-_]/g, " ");
 }
 
+interface CtxMenu {
+  x: number;
+  y: number;
+  newDir: string;
+  targetPath: string;
+  targetKind: "file" | "dir" | null;
+}
+
 interface TreeNodeItemProps {
   node: TreeNode;
   depth: number;
   activeFilename?: string | null;
   onSelect: (path: string) => void;
-  onContextMenu: (e: MouseEvent, parentDir: string) => void;
+  onContextMenu: (e: MouseEvent, newDir: string, targetPath: string, targetKind: "file" | "dir") => void;
 }
 
 const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
   const [expanded, setExpanded] = createSignal(true);
 
-  const parentDir = () =>
-    props.node.kind === "dir"
-      ? (props.node as TreeDir).path
-      : (props.node as TreeFile).path.split("/").slice(0, -1).join("/");
+  const fileParentDir = () =>
+    (props.node as TreeFile).path.split("/").slice(0, -1).join("/");
 
   return (
     <>
@@ -81,7 +85,9 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
           class="file-item toc-item wiki-dir"
           style={{ "padding-left": `${12 + props.depth * 16}px` }}
           onClick={() => setExpanded((v) => !v)}
-          onContextMenu={(e) => props.onContextMenu(e, (props.node as TreeDir).path)}
+          onContextMenu={(e) =>
+            props.onContextMenu(e, (props.node as TreeDir).path, (props.node as TreeDir).path, "dir")
+          }
         >
           <span class="toc-expand-cell">
             <button
@@ -115,7 +121,9 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
           class={`file-item toc-item${props.activeFilename === (props.node as TreeFile).path ? " active" : ""}`}
           style={{ "padding-left": `${12 + props.depth * 16}px` }}
           onClick={() => props.onSelect((props.node as TreeFile).path)}
-          onContextMenu={(e) => props.onContextMenu(e, parentDir())}
+          onContextMenu={(e) =>
+            props.onContextMenu(e, fileParentDir(), (props.node as TreeFile).path, "file")
+          }
         >
           <span class="toc-expand-cell" />
           <span class="toc-label">{displayName((props.node as TreeFile).name)}</span>
@@ -125,18 +133,13 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
   );
 };
 
-interface CtxMenu {
-  x: number;
-  y: number;
-  dir: string;
-}
-
 interface Props {
   files: string[];
   dirs: string[];
   activeFilename?: string | null;
   onSelect: (path: string) => void;
   onNew?: (parentDir: string) => void;
+  onDelete?: (path: string, kind: "file" | "dir") => void;
 }
 
 const WikiTree: Component<Props> = (props) => {
@@ -150,15 +153,26 @@ const WikiTree: Component<Props> = (props) => {
     onCleanup(() => document.removeEventListener("click", close));
   });
 
-  function handleContextMenu(e: MouseEvent, dir: string) {
+  function handleContextMenu(
+    e: MouseEvent,
+    newDir: string,
+    targetPath: string,
+    targetKind: "file" | "dir",
+  ) {
     e.preventDefault();
-    setCtxMenu({ x: e.clientX, y: e.clientY, dir });
+    setCtxMenu({ x: e.clientX, y: e.clientY, newDir, targetPath, targetKind });
   }
 
   function handleNew() {
     const m = ctxMenu();
     setCtxMenu(null);
-    if (m) props.onNew?.(m.dir);
+    if (m) props.onNew?.(m.newDir);
+  }
+
+  function handleDelete() {
+    const m = ctxMenu();
+    setCtxMenu(null);
+    if (m && m.targetPath) props.onDelete?.(m.targetPath, m.targetKind!);
   }
 
   return (
@@ -166,10 +180,11 @@ const WikiTree: Component<Props> = (props) => {
       <ul
         class="file-list"
         onContextMenu={(e) => {
-          if (e.target === e.currentTarget) handleContextMenu(e, "");
+          if (e.target === e.currentTarget)
+            setCtxMenu({ x: e.clientX, y: e.clientY, newDir: "", targetPath: "", targetKind: null });
         }}
       >
-        <Show when={props.files.length === 0}>
+        <Show when={props.files.length === 0 && props.dirs.length === 0}>
           <li class="file-empty">No files</li>
         </Show>
         <For each={tree()}>
@@ -191,9 +206,13 @@ const WikiTree: Component<Props> = (props) => {
           style={{ left: `${ctxMenu()!.x}px`, top: `${ctxMenu()!.y}px` }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button class="ctx-menu-item" onClick={handleNew}>
-            New here
-          </button>
+          <button class="ctx-menu-item" onClick={handleNew}>New</button>
+          <Show when={ctxMenu()!.targetPath !== ""}>
+            <div class="ctx-menu-divider" />
+            <button class="ctx-menu-item ctx-menu-item-danger" onClick={handleDelete}>
+              Delete
+            </button>
+          </Show>
         </div>
       </Show>
     </>

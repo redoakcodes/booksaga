@@ -29,6 +29,13 @@ class MockFileSystem implements IFileSystem {
     this.files.delete(pathParts.join("/"));
   }
 
+  async deleteDir(pathParts: string[]): Promise<void> {
+    const prefix = pathParts.join("/") + "/";
+    for (const key of [...this.files.keys()]) {
+      if (key.startsWith(prefix)) this.files.delete(key);
+    }
+  }
+
   async listMarkdownFiles(subdir: string): Promise<string[]> {
     const prefix = subdir + "/";
     return [...this.files.keys()]

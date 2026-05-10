@@ -11,6 +11,7 @@ interface Props {
   onPlaceholderClick: (label: string) => void;
   pendingCreateLabel?: string | null;
   onNewWikiEntry?: (parentDir: string) => void;
+  onDeleteWikiEntry?: (path: string, kind: "file" | "dir") => void;
 }
 
 const TABS: { id: Section; label: string }[] = [
@@ -71,6 +72,7 @@ const Sidebar: Component<Props> = (props) => {
             activeFilename={store.openFile()?.section === "wiki" ? store.openFile()?.filename : null}
             onSelect={(path) => props.onFileSelect("wiki", path)}
             onNew={props.onNewWikiEntry}
+            onDelete={props.onDeleteWikiEntry}
           />
         </Show>
 
