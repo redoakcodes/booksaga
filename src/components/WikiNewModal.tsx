@@ -149,12 +149,6 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
             </div>
           </div>
 
-          <Show when={entryType() === "folder"}>
-            <p class="new-modal-note">
-              The folder will appear in the sidebar once it contains files.
-            </p>
-          </Show>
-
           <div class="modal-actions">
             <button type="button" class="btn-secondary" onClick={props.onCancel}>
               Cancel

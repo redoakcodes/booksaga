@@ -164,17 +164,18 @@ export async function createWikiFile(
 }
 
 /**
- * Create a wiki folder by writing a hidden .gitkeep so the directory exists
- * on disk. The folder appears in the sidebar once it contains .md files.
+ * Create a wiki folder and return its path relative to wiki/.
+ * Writes a hidden .gitkeep so the directory exists on disk.
  */
 export async function createWikiFolder(
   model: ProjectModel,
   parentDir: string,
   name: string,
-): Promise<void> {
+): Promise<string> {
   const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const folderPath = parentDir ? `${parentDir}/${slug}` : slug;
   await model.fs.writeFile([WIKI_DIR, ...folderPath.split("/"), ".gitkeep"], "");
+  return folderPath;
 }
 
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {

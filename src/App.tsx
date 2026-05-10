@@ -150,8 +150,9 @@ const App: Component = () => {
       store.setProject(await loadProject(project.fs));
       await handleFileSelect("wiki", filename);
     } else {
-      await createWikiFolder(project, parentDir, name);
-      store.setProject(await loadProject(project.fs));
+      const folderPath = await createWikiFolder(project, parentDir, name);
+      const newDirs = [...project.wikiDirs, folderPath].sort();
+      store.setProject({ ...project, wikiDirs: newDirs });
     }
   }
 
