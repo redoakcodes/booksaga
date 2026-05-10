@@ -686,14 +686,49 @@ html, body, #root {
 
 /* Backlinks panel */
 .backlinks-panel {
+  position: relative;
   width: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+.backlinks-panel.collapsed {
+  width: 0;
+}
+
+.backlinks-inner {
+  width: 200px;
+  height: 100%;
   background: var(--bg-sidebar);
   border-left: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
   overflow: hidden;
 }
+
+.backlinks-toggle {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 44px;
+  background: var(--bg-sidebar);
+  border: 1px solid var(--border);
+  border-radius: 6px 0 0 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: color 0.15s, background 0.15s;
+}
+
+.backlinks-toggle:hover { color: var(--accent); background: var(--bg-card); }
 
 .backlinks-header {
   padding: 10px 12px 8px;

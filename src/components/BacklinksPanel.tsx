@@ -1,4 +1,4 @@
-import { For, Show, type Component } from "solid-js";
+import { createSignal, For, Show, type Component } from "solid-js";
 import { backlinks } from "../lib/wikiIndex";
 import type { WikiIndex } from "../lib/wikiIndex";
 
@@ -14,6 +14,8 @@ function normalize(s: string): string {
 }
 
 const BacklinksPanel: Component<Props> = (props) => {
+  const [collapsed, setCollapsed] = createSignal(false);
+
   const stem = () => {
     const f = props.filename;
     return f ? f.split("/").pop()!.replace(/\.md$/, "") : null;
@@ -34,28 +36,37 @@ const BacklinksPanel: Component<Props> = (props) => {
   }
 
   return (
-    <aside class="backlinks-panel">
-      <div class="backlinks-header">Backlinks</div>
-      <Show
-        when={links().length > 0}
-        fallback={<div class="backlinks-empty">No backlinks</div>}
+    <aside class="backlinks-panel" classList={{ collapsed: collapsed() }}>
+      <div class="backlinks-inner">
+        <div class="backlinks-header">Backlinks</div>
+        <Show
+          when={links().length > 0}
+          fallback={<div class="backlinks-empty">No backlinks</div>}
+        >
+          <ul class="backlinks-list">
+            <For each={links()}>
+              {(pageName) => {
+                const file = findFile(pageName);
+                return (
+                  <li
+                    class={`backlinks-item${file ? "" : " backlinks-missing"}`}
+                    onClick={() => { if (file) props.onSelect(file); }}
+                  >
+                    {pageName.replace(/-/g, " ")}
+                  </li>
+                );
+              }}
+            </For>
+          </ul>
+        </Show>
+      </div>
+      <button
+        class="backlinks-toggle"
+        onClick={() => setCollapsed((c) => !c)}
+        title={collapsed() ? "Expand backlinks" : "Collapse backlinks"}
       >
-        <ul class="backlinks-list">
-          <For each={links()}>
-            {(pageName) => {
-              const file = findFile(pageName);
-              return (
-                <li
-                  class={`backlinks-item${file ? "" : " backlinks-missing"}`}
-                  onClick={() => { if (file) props.onSelect(file); }}
-                >
-                  {pageName.replace(/-/g, " ")}
-                </li>
-              );
-            }}
-          </For>
-        </ul>
-      </Show>
+        {collapsed() ? "‹" : "›"}
+      </button>
     </aside>
   );
 };
