@@ -148,6 +148,33 @@ export async function renameWikiFile(
   }
 }
 
+/** Create a new wiki file and return its relative path under wiki/. */
+export async function createWikiFile(
+  model: ProjectModel,
+  parentDir: string,
+  title: string,
+): Promise<string> {
+  const slug =
+    title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+  const filename = parentDir ? `${parentDir}/${slug}` : slug;
+  await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], `# ${title.trim()}\n\n`);
+  return filename;
+}
+
+/**
+ * Create a wiki folder by writing a hidden .gitkeep so the directory exists
+ * on disk. The folder appears in the sidebar once it contains .md files.
+ */
+export async function createWikiFolder(
+  model: ProjectModel,
+  parentDir: string,
+  name: string,
+): Promise<void> {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const folderPath = parentDir ? `${parentDir}/${slug}` : slug;
+  await model.fs.writeFile([WIKI_DIR, ...folderPath.split("/"), ".gitkeep"], "");
+}
+
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {
   if (section === "manuscript") return MANUSCRIPT_DIR;
   if (section === "wiki") return WIKI_DIR;

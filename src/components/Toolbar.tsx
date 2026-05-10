@@ -8,11 +8,13 @@ import {
   applyInlineCode,
 } from "../lib/editorCommands";
 import { modKeyLabel } from "../lib/platform";
+import { store } from "../store";
 
 interface Props {
   onSave: () => void;
   viewMarkdown: boolean;
   onToggleView: () => void;
+  onNewWiki?: () => void;
 }
 
 type OpenMenu = "menu" | "format" | null;
@@ -60,6 +62,12 @@ const Toolbar: Component<Props> = (props) => {
           </button>
           <Show when={openMenu() === "menu"}>
             <div class="toolbar-dropdown">
+              <Show when={store.activeSection() === "wiki"}>
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onNewWiki?.())}>
+                  <span class="toolbar-item-label">New</span>
+                </button>
+                <div class="toolbar-divider" />
+              </Show>
               <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onSave)}>
                 <span class="toolbar-item-label">Save</span>
                 <span class="toolbar-item-hint">{modKeyLabel}S</span>

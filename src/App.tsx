@@ -16,15 +16,20 @@ import {
   reorderChapters,
   promoteOutlineEntry,
   renameWikiFile,
+  createWikiFile,
+  createWikiFolder,
   extractH1,
   wikiFilenameForTitle,
 } from "./lib/project";
+import WikiNewModal from "./components/WikiNewModal";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import "./App.css";
 
 const App: Component = () => {
   const [pendingCreate, setPendingCreate] = createSignal<string | null>(null);
   const [viewMarkdown, setViewMarkdown] = createSignal(false);
+  const [wikiNewOpen, setWikiNewOpen] = createSignal(false);
+  const [wikiNewInitialDir, setWikiNewInitialDir] = createSignal("");
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -127,6 +132,28 @@ const App: Component = () => {
     store.patchOpenFile({ content: markdown, dirty: true });
   }
 
+  function handleOpenWikiNew(dir = "") {
+    setWikiNewInitialDir(dir);
+    setWikiNewOpen(true);
+  }
+
+  async function handleCreateWikiEntry(
+    type: "file" | "folder",
+    name: string,
+    parentDir: string,
+  ) {
+    const project = store.project();
+    if (!project) return;
+    setWikiNewOpen(false);
+    if (type === "file") {
+      const filename = await createWikiFile(project, parentDir, name);
+      store.setProject(await loadProject(project.fs));
+      await handleFileSelect("wiki", filename);
+    } else {
+      await createWikiFolder(project, parentDir, name);
+    }
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
@@ -146,12 +173,14 @@ const App: Component = () => {
             onReorderChapters={handleReorderChapters}
             onPlaceholderClick={handlePlaceholderClick}
             pendingCreateLabel={pendingCreate()}
+            onNewWikiEntry={handleOpenWikiNew}
           />
           <main class="main-panel">
             <Toolbar
               onSave={handleSave}
               viewMarkdown={viewMarkdown()}
               onToggleView={() => setViewMarkdown((v) => !v)}
+              onNewWiki={() => handleOpenWikiNew()}
             />
             <Show
               when={store.openFile()}
@@ -198,6 +227,14 @@ const App: Component = () => {
           </Show>
         </div>
         <StatusBar />
+        <Show when={wikiNewOpen()}>
+          <WikiNewModal
+            wikiFiles={store.project()?.wikiFiles ?? []}
+            initialDir={wikiNewInitialDir()}
+            onConfirm={handleCreateWikiEntry}
+            onCancel={() => setWikiNewOpen(false)}
+          />
+        </Show>
       </Show>
     </div>
   );

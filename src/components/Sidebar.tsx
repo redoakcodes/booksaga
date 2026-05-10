@@ -10,6 +10,7 @@ interface Props {
   onReorderChapters: (from: number, to: number) => void;
   onPlaceholderClick: (label: string) => void;
   pendingCreateLabel?: string | null;
+  onNewWikiEntry?: (parentDir: string) => void;
 }
 
 const TABS: { id: Section; label: string }[] = [
@@ -68,6 +69,7 @@ const Sidebar: Component<Props> = (props) => {
             files={project()?.wikiFiles ?? []}
             activeFilename={store.openFile()?.section === "wiki" ? store.openFile()?.filename : null}
             onSelect={(path) => props.onFileSelect("wiki", path)}
+            onNew={props.onNewWikiEntry}
           />
         </Show>
 
