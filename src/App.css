@@ -1024,24 +1024,28 @@ html, body, #root {
   --accent-underline: rgba(37,99,235,0.40);
 }
 
-/* ── Sci-Fi theme (Millennium Falcon cockpit) ── */
+/* ── Sci-Fi theme (2001: A Space Odyssey) ── */
 [data-theme="scifi"] {
-  --bg: #0c0d0f;
-  --bg-sidebar: #101214;
-  --bg-card: #181a1e;
-  --border: #2a2e36;
-  --text: #c8a060;
-  --text-muted: #6a5830;
-  --text-heading: #e0b870;
-  --accent: #e89028;
-  --accent-hover: #f0a840;
-  --danger: #cc3322;
-  --dirty: #6aaa44;
-  --accent-bg-xs: rgba(232,144,40,0.08);
-  --accent-bg-sm: rgba(232,144,40,0.14);
-  --accent-bg-md: rgba(232,144,40,0.20);
-  --accent-selection: rgba(232,144,40,0.28);
-  --accent-underline: rgba(232,144,40,0.40);
+  --bg: #f0f2f5;
+  --bg-sidebar: #e4e8ed;
+  --bg-card: #f8f9fb;
+  --border: #c4cad4;
+  --text: #282c34;
+  --text-muted: #6a7280;
+  --text-heading: #12161c;
+  --accent: #3a6490;
+  --accent-hover: #2a5480;
+  --danger: #c41c1c;
+  --dirty: #b07820;
+  --hover-bg-xs: rgba(0,0,0,0.03);
+  --hover-bg-sm: rgba(0,0,0,0.04);
+  --hover-bg-md: rgba(0,0,0,0.06);
+  --hover-bg-lg: rgba(0,0,0,0.08);
+  --accent-bg-xs: rgba(58,100,144,0.08);
+  --accent-bg-sm: rgba(58,100,144,0.13);
+  --accent-bg-md: rgba(58,100,144,0.18);
+  --accent-selection: rgba(58,100,144,0.22);
+  --accent-underline: rgba(58,100,144,0.40);
 }
 
 /* ── Noire theme (1920s detective / Dark Academia) ── */
