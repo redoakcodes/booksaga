@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Character Voice",
+    "prompt": "Create a concise writing exercise (3–5 sentences) focused on developing a character's unique voice and speech patterns. Give the writer a specific character type, an unusual situation, and a constraint that forces the character's voice to emerge naturally. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "Sense of Place",
+    "prompt": "Create a concise writing exercise (3–5 sentences) focused on establishing a vivid sense of place through layered sensory detail. Name a specific, unconventional setting and a sensory hierarchy the writer must follow (e.g., lead with sound before sight). The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "Subtext in Dialogue",
+    "prompt": "Create a concise writing exercise (3–5 sentences) focused on writing dialogue where the real meaning is never stated directly. Provide two characters in a specific relationship and a topic they cannot discuss openly, forcing everything to be said sideways. The exercise should be completable in 15–30 minutes, producing 300–500 words of dialogue and minimal action beats. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "The Inciting Moment",
+    "prompt": "Create a concise writing exercise (3–5 sentences) focused on writing the precise moment a character's ordinary life becomes impossible to continue unchanged. Specify a mundane setting and an interruption — large or small — that cannot be ignored. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "Unreliable Narrator",
+    "prompt": "Create a concise writing exercise (3–5 sentences) where the writer must construct a narrator whose account of events is subtly but clearly wrong. Provide a scenario and a specific type of self-deception (denial, wishful thinking, selective memory, etc.) the narrator must embody without explicitly acknowledging it. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "Backstory Through Action",
+    "prompt": "Create a concise writing exercise (3–5 sentences) where a character's past must be revealed entirely through what they do and notice in the present — no flashbacks, no exposition. Provide a specific present-tense scene and a piece of backstory the writer must smuggle into it. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "The Emotional Object",
+    "prompt": "Create a concise writing exercise (3–5 sentences) centred on a physical object that carries enormous but unstated emotional weight for a character. Provide the object, the character type, and a situation that forces the character to interact with the object in a new way. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  },
+  {
+    "name": "Tension in the Ordinary",
+    "prompt": "Create a concise writing exercise (3–5 sentences) focused on generating unbearable tension inside a mundane, everyday interaction — no violence, no dramatic revelation, just the awful pressure of submerged feeling in an ordinary moment. Specify the setting, the two people, and the unspoken thing between them. The exercise should be completable in 15–30 minutes, producing 300–500 words. Return only the exercise text with no preamble or sign-off."
+  }
+]

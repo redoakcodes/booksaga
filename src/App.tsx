@@ -24,8 +24,12 @@ import {
 } from "./lib/project";
 import WikiNewModal from "./components/WikiNewModal";
 import SettingsModal from "./components/SettingsModal";
+import ExerciseNewModal from "./components/ExerciseNewModal";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
+import { createExerciseFile } from "./lib/project";
+import promptsData from "./assets/prompts.json";
+import type { PromptEntry } from "./lib/ai";
 import "./App.css";
 
 const App: Component = () => {
@@ -36,6 +40,8 @@ const App: Component = () => {
   const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir"; fileCount: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
+  const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
+  const prompts: PromptEntry[] = promptsData;
 
   createEffect(() => {
     const project = store.project();
@@ -189,6 +195,23 @@ const App: Component = () => {
     });
   }
 
+  function handleNew() {
+    const section = store.activeSection();
+    if (section === "wiki") handleOpenWikiNew();
+    else if (section === "exercises") setExerciseNewOpen(true);
+    // manuscript: not yet implemented
+  }
+
+  async function handleCreateExercise(exerciseText: string) {
+    const project = store.project();
+    if (!project) return;
+    setExerciseNewOpen(false);
+    const filename = await createExerciseFile(project, exerciseText);
+    store.setProject(await loadProject(project.fs));
+    store.setActiveSection("exercises");
+    await handleFileSelect("exercises", filename);
+  }
+
   function handleOpenWikiNew(dir = "") {
     setWikiNewInitialDir(dir);
     setWikiNewOpen(true);
@@ -250,7 +273,7 @@ const App: Component = () => {
               onSave={handleSave}
               viewMarkdown={viewMarkdown()}
               onToggleView={() => setViewMarkdown((v) => !v)}
-              onNewWiki={() => handleOpenWikiNew()}
+              onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
             />
             <Show
@@ -304,6 +327,13 @@ const App: Component = () => {
             initialDir={wikiNewInitialDir()}
             onConfirm={handleCreateWikiEntry}
             onCancel={() => setWikiNewOpen(false)}
+          />
+        </Show>
+        <Show when={exerciseNewOpen()}>
+          <ExerciseNewModal
+            prompts={prompts}
+            onCreate={handleCreateExercise}
+            onCancel={() => setExerciseNewOpen(false)}
           />
         </Show>
         <Show when={settingsOpen()}>

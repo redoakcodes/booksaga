@@ -192,6 +192,21 @@ export async function createWikiFolder(
   return folderPath;
 }
 
+/** Create a new exercise file and return its filename. */
+export async function createExerciseFile(
+  model: ProjectModel,
+  exerciseText: string,
+): Promise<string> {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const filename =
+    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}` +
+    `-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.md`;
+  const content = `# ${exerciseText.trim()}\n\n# \n`;
+  await model.fs.writeFile([EXERCISES_DIR, filename], content);
+  return filename;
+}
+
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {
   if (section === "manuscript") return MANUSCRIPT_DIR;
   if (section === "wiki") return WIKI_DIR;

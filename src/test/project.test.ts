@@ -3,7 +3,7 @@ import type { IFileSystem, StorageMode } from "../lib/filesystem";
 import {
   loadProject, readFile, saveFile, initProject,
   renameWikiFile, extractH1, wikiFilenameForTitle,
-  promoteOutlineEntry,
+  promoteOutlineEntry, createExerciseFile,
   MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR,
 } from "../lib/project";
 import { TOC_TEMPLATE } from "../lib/toc";
@@ -263,6 +263,32 @@ describe("promoteOutlineEntry", () => {
     await promoteOutlineEntry(model, "Part One");
     const fresh = await loadProject(fs);
     expect(fresh.chapters).toContain("chapter-one.md");
+  });
+});
+
+describe("createExerciseFile", () => {
+  it("writes a timestamped markdown file to the exercises dir", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createExerciseFile(model, "Write a scene about longing.");
+    expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.md$/);
+    expect(fs.files.has(`${EXERCISES_DIR}/${filename}`)).toBe(true);
+  });
+
+  it("writes an H1 with the exercise text", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createExerciseFile(model, "Write about loss.");
+    const content = fs.files.get(`${EXERCISES_DIR}/${filename}`)!;
+    expect(content).toMatch(/^# Write about loss\./m);
+  });
+
+  it("appends an empty H1 after the exercise", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createExerciseFile(model, "Write about loss.");
+    const content = fs.files.get(`${EXERCISES_DIR}/${filename}`)!;
+    expect(content).toMatch(/^# $/m);
   });
 });
 
