@@ -40,7 +40,7 @@ const ExerciseNewModal: Component<Props> = (props) => {
           <select
             id="exercise-prompt"
             class="new-modal-input"
-            disabled={genState() !== "idle"}
+            disabled={genState() === "generating"}
             onChange={(e) => setPromptIdx(+e.currentTarget.value)}
           >
             <For each={props.prompts}>
