@@ -13,4 +13,4 @@ Booksaga uses standard markdown with the addition of:
 ## Running
 
 Running in dev:
-`npm run dev tauri`
+`npm run tauri dev`
