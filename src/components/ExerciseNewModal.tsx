@@ -1,9 +1,10 @@
 import { createSignal, For, Show, type Component } from "solid-js";
-import type { PromptEntry } from "../lib/ai";
+import type { PromptEntry, AiConfig } from "../lib/ai";
 import { streamExercise } from "../lib/ai";
 
 interface Props {
   prompts: PromptEntry[];
+  aiConfig: AiConfig;
   onCreate: (exerciseText: string) => void;
   onCancel: () => void;
 }
@@ -14,18 +15,21 @@ const ExerciseNewModal: Component<Props> = (props) => {
   const [promptIdx, setPromptIdx] = createSignal(0);
   const [genState, setGenState] = createSignal<GenState>("idle");
   const [result, setResult] = createSignal("");
+  const [error, setError] = createSignal<string | null>(null);
 
   async function generate() {
     const entry = props.prompts[promptIdx()];
     if (!entry) return;
     setResult("");
+    setError(null);
     setGenState("generating");
     try {
-      for await (const chunk of streamExercise(entry.prompt)) {
+      for await (const chunk of streamExercise(entry.prompt, props.aiConfig)) {
         setResult((r) => r + chunk);
       }
       setGenState("done");
-    } catch {
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Generation failed.");
       setGenState("idle");
     }
   }
@@ -49,7 +53,10 @@ const ExerciseNewModal: Component<Props> = (props) => {
           </select>
         </div>
 
-        <div class="exercise-result" classList={{ "exercise-result--active": genState() !== "idle" }}>
+        <div class="exercise-result" classList={{ "exercise-result--active": genState() !== "idle" || !!error() }}>
+          <Show when={error()}>
+            <p class="exercise-result-error">{error()}</p>
+          </Show>
           <Show when={genState() === "generating" && !result()}>
             <div class="exercise-loading">
               <span class="loading-dot" />

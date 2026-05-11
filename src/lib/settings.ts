@@ -12,6 +12,7 @@ export type Theme =
 
 export interface AppSettings {
   theme: Theme;
+  anthropicApiKey?: string;
 }
 
 const SETTINGS_FILE = "booksaga.json";
@@ -26,7 +27,10 @@ export async function loadSettings(fs: IFileSystem): Promise<AppSettings> {
   if (!raw) return { ...DEFAULTS };
   try {
     const parsed = JSON.parse(raw);
-    return { theme: VALID_THEMES.has(parsed.theme) ? (parsed.theme as Theme) : "dark" };
+    return {
+      theme: VALID_THEMES.has(parsed.theme) ? (parsed.theme as Theme) : "dark",
+      anthropicApiKey: typeof parsed.anthropicApiKey === "string" ? parsed.anthropicApiKey : undefined,
+    };
   } catch {
     return { ...DEFAULTS };
   }

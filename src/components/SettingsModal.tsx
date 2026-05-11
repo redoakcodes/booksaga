@@ -1,14 +1,22 @@
 import { createSignal, type Component } from "solid-js";
-import type { Theme } from "../lib/settings";
+import type { AppSettings, Theme } from "../lib/settings";
 
 interface Props {
-  currentTheme: Theme;
-  onSave: (theme: Theme) => void;
+  settings: AppSettings;
+  onSave: (settings: AppSettings) => void;
   onClose: () => void;
 }
 
 const SettingsModal: Component<Props> = (props) => {
-  const [theme, setTheme] = createSignal<Theme>(props.currentTheme);
+  const [theme, setTheme] = createSignal<Theme>(props.settings.theme);
+  const [apiKey, setApiKey] = createSignal(props.settings.anthropicApiKey ?? "");
+
+  function save() {
+    props.onSave({
+      theme: theme(),
+      anthropicApiKey: apiKey().trim() || undefined,
+    });
+  }
 
   return (
     <div class="modal-overlay" onClick={props.onClose}>
@@ -34,9 +42,24 @@ const SettingsModal: Component<Props> = (props) => {
           </select>
         </div>
 
+        <div class="new-modal-field">
+          <label class="new-modal-label" for="settings-api-key">
+            Anthropic API Key
+          </label>
+          <input
+            id="settings-api-key"
+            type="password"
+            class="new-modal-input"
+            placeholder="sk-ant-…"
+            value={apiKey()}
+            onInput={(e) => setApiKey(e.currentTarget.value)}
+            autocomplete="off"
+          />
+        </div>
+
         <div class="modal-actions">
           <button class="btn-secondary" onClick={props.onClose}>Close</button>
-          <button class="btn-primary" onClick={() => props.onSave(theme())}>Save</button>
+          <button class="btn-primary" onClick={save}>Save</button>
         </div>
       </div>
     </div>

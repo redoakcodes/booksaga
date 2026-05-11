@@ -29,7 +29,7 @@ import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
-import type { PromptEntry } from "./lib/ai";
+import type { PromptEntry, AiConfig } from "./lib/ai";
 import "./App.css";
 
 const App: Component = () => {
@@ -236,15 +236,16 @@ const App: Component = () => {
     }
   }
 
-  async function handleSaveSettings(theme: AppSettings["theme"]) {
+  async function handleSaveSettings(settings: AppSettings) {
     const project = store.project();
     if (!project) return;
-    const newSettings = { ...appSettings(), theme };
-    await saveSettings(project.fs, newSettings);
-    setAppSettings(newSettings);
-    applyTheme(theme);
+    await saveSettings(project.fs, settings);
+    setAppSettings(settings);
+    applyTheme(settings.theme);
     setSettingsOpen(false);
   }
+
+  const aiConfig = (): AiConfig => ({ anthropicApiKey: appSettings().anthropicApiKey });
 
   function handleKeyDown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -332,13 +333,14 @@ const App: Component = () => {
         <Show when={exerciseNewOpen()}>
           <ExerciseNewModal
             prompts={prompts}
+            aiConfig={aiConfig()}
             onCreate={handleCreateExercise}
             onCancel={() => setExerciseNewOpen(false)}
           />
         </Show>
         <Show when={settingsOpen()}>
           <SettingsModal
-            currentTheme={appSettings().theme}
+            settings={appSettings()}
             onSave={handleSaveSettings}
             onClose={() => setSettingsOpen(false)}
           />
