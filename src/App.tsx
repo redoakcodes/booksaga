@@ -25,6 +25,7 @@ import {
 import WikiNewModal from "./components/WikiNewModal";
 import SettingsModal from "./components/SettingsModal";
 import ExerciseNewModal from "./components/ExerciseNewModal";
+import SagaConsole from "./components/SagaConsole";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
 import { createExerciseFile } from "./lib/project";
@@ -41,6 +42,7 @@ const App: Component = () => {
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
+  const [sagaOpen, setSagaOpen] = createSignal(false);
   const prompts: PromptEntry[] = promptsData;
 
   createEffect(() => {
@@ -247,14 +249,28 @@ const App: Component = () => {
 
   const aiConfig = (): AiConfig => ({ anthropicApiKey: appSettings().anthropicApiKey });
 
+  function handleToggleSaga() {
+    const wasOpen = sagaOpen();
+    setSagaOpen((v) => !v);
+    if (wasOpen) {
+      // Return focus to the editor when closing
+      const pm = document.querySelector(".ProseMirror") as HTMLElement | null;
+      pm?.focus();
+    }
+  }
+
   function handleKeyDown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
       handleSave();
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") {
+      e.preventDefault();
+      handleToggleSaga();
+    }
   }
 
-  const isWikiOpen = () => store.openFile()?.section === "wiki" ?? false;
+  const isWikiOpen = () => store.openFile()?.section === "wiki";
 
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
@@ -321,6 +337,11 @@ const App: Component = () => {
             />
           </Show>
         </div>
+        <SagaConsole
+          open={sagaOpen()}
+          onToggle={handleToggleSaga}
+          aiConfig={aiConfig()}
+        />
         <StatusBar />
         <Show when={wikiNewOpen()}>
           <WikiNewModal

@@ -8,7 +8,6 @@ import {
   applyInlineCode,
 } from "../lib/editorCommands";
 import { modKeyLabel } from "../lib/platform";
-import { store } from "../store";
 
 interface Props {
   onSave: () => void;

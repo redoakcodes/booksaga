@@ -4,7 +4,7 @@
  * This verifies that makeEditorView is actually called and PM content is created
  * when the Editor is mounted via SolidJS's reactive lifecycle.
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup } from "@solidjs/testing-library";
 import { batch, createSignal, Show } from "solid-js";
 
@@ -71,7 +71,7 @@ describe("Editor component (real ProseMirror)", () => {
 
   it("mounts correctly when shown via nested reactive Shows", () => {
     const [outer, setOuter] = createSignal(false);
-    const [inner, setInner] = createSignal(true);
+    const [inner] = createSignal(true);
     render(() => (
       <Show when={outer()}>
         <Show when={inner()}>

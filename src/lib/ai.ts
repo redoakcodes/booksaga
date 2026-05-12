@@ -35,7 +35,9 @@ export async function* streamExercise(
     messages: [{ role: "user", content: prompt }],
   });
 
-  for await (const text of stream.textStream) {
-    yield text;
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      yield event.delta.text;
+    }
   }
 }
