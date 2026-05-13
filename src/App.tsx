@@ -268,6 +268,10 @@ const App: Component = () => {
       e.preventDefault();
       handleToggleSaga();
     }
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "n") {
+      e.preventDefault();
+      handleNew();
+    }
   }
 
   const isWikiOpen = () => store.openFile()?.section === "wiki";
