@@ -158,7 +158,7 @@ const SagaConsole: Component<Props> = (props) => {
           </div>
         </div>
       </div>
-      <button class="saga-tab" onClick={props.onToggle}>
+      <button class="saga-tab" classList={{ open: props.open }} onClick={props.onToggle}>
         {props.open ? "Hide Saga" : "Saga Console"}
       </button>
     </>

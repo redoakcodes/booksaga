@@ -1231,10 +1231,11 @@ html, body, #root {
   cursor: pointer;
   z-index: 52;
   white-space: nowrap;
-  transition: color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s, transform 0.25s ease;
   user-select: none;
 }
 
+.saga-tab.open { transform: translateY(-25vh); }
 .saga-tab:hover { color: var(--accent); background: var(--bg); }
 
 .saga-panel {
