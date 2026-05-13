@@ -65,7 +65,6 @@ const Toolbar: Component<Props> = (props) => {
               <button class="toolbar-menu-item" onClick={() => run(() => props.onNew?.())}>
                 <span class="toolbar-item-label">New</span>
               </button>
-              <div class="toolbar-divider" />
               <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onSave)}>
                 <span class="toolbar-item-label">Save</span>
                 <span class="toolbar-item-hint">{modKeyLabel}S</span>
