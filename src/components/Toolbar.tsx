@@ -15,19 +15,23 @@ interface Props {
   onToggleView: () => void;
   onNew?: () => void;
   onSettings?: () => void;
+  isDiagram?: boolean;
+  onInsertNode?: () => void;
+  onInsertEdge?: () => void;
 }
 
-type OpenMenu = "menu" | "format" | null;
+type OpenMenu = "menu" | "format" | "insert" | null;
 
 const Toolbar: Component<Props> = (props) => {
   const [openMenu, setOpenMenu] = createSignal<OpenMenu>(null);
   let menuRef!: HTMLDivElement;
   let formatRef!: HTMLDivElement;
+  let insertRef!: HTMLDivElement;
 
   createEffect(() => {
     const which = openMenu();
     if (!which) return;
-    const ref = which === "menu" ? menuRef : formatRef;
+    const ref = which === "menu" ? menuRef : which === "insert" ? insertRef : formatRef;
     const handler = (e: MouseEvent) => {
       if (!ref.contains(e.target as Node)) setOpenMenu(null);
     };
@@ -83,7 +87,31 @@ const Toolbar: Component<Props> = (props) => {
           </Show>
         </div>
 
-        {/* ── Format ── */}
+        {/* ── Insert (diagrams) ── */}
+        <Show when={props.isDiagram}>
+          <div class="toolbar-menu" ref={insertRef}>
+            <button
+              class="toolbar-menu-btn"
+              classList={{ active: openMenu() === "insert" }}
+              onClick={() => toggle("insert")}
+            >
+              Insert
+            </button>
+            <Show when={openMenu() === "insert"}>
+              <div class="toolbar-dropdown">
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertNode?.())}>
+                  <span class="toolbar-item-label">Node…</span>
+                </button>
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
+                  <span class="toolbar-item-label">Edge…</span>
+                </button>
+              </div>
+            </Show>
+          </div>
+        </Show>
+
+        {/* ── Format (text editor) ── */}
+        <Show when={!props.isDiagram}>
         <div class="toolbar-menu" ref={formatRef}>
           <button
             class="toolbar-menu-btn"
@@ -148,6 +176,7 @@ const Toolbar: Component<Props> = (props) => {
             </div>
           </Show>
         </div>
+        </Show>
 
       </div>
 

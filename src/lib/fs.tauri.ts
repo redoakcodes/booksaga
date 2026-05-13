@@ -55,7 +55,19 @@ export class TauriFileSystem implements IFileSystem {
     } catch {
       return [];
     }
-    await collectMarkdownFiles(subdirPath, "", names);
+    await collectFilesByExt(subdirPath, "", ".md", names);
+    return names.sort();
+  }
+
+  async listDiagramFiles(subdir: string): Promise<string[]> {
+    const names: string[] = [];
+    const subdirPath = await join(this.rootPath, subdir);
+    try {
+      await readDir(subdirPath);
+    } catch {
+      return [];
+    }
+    await collectFilesByExt(subdirPath, "", ".mmd", names);
     return names.sort();
   }
 
@@ -83,20 +95,21 @@ async function collectSubdirs(dirPath: string, prefix: string, out: string[]): P
   }
 }
 
-async function collectMarkdownFiles(
+async function collectFilesByExt(
   dirPath: string,
   prefix: string,
+  ext: string,
   out: string[],
 ): Promise<void> {
   const entries = await readDir(dirPath);
   for (const entry of entries) {
     if (!entry.name) continue;
     const relativeName = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isFile && entry.name.endsWith(".md")) {
+    if (entry.isFile && entry.name.endsWith(ext)) {
       out.push(relativeName);
     } else if (entry.isDirectory) {
       const childPath = await join(dirPath, entry.name);
-      await collectMarkdownFiles(childPath, relativeName, out);
+      await collectFilesByExt(childPath, relativeName, ext, out);
     }
   }
 }

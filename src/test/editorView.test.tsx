@@ -55,6 +55,7 @@ const fakeProject: ProjectModel = {
   chapters: [],
   wikiFiles: [],
   wikiDirs: [],
+  diagramFiles: [],
   exerciseFiles: [],
   wikiIndex: { forward: new Map(), backward: new Map(), pages: [] },
 };

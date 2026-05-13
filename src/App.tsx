@@ -18,13 +18,17 @@ import {
   renameWikiFile,
   createWikiFile,
   createWikiFolder,
+  createDiagramFile,
   deleteWikiEntry,
   extractH1,
   wikiFilenameForTitle,
 } from "./lib/project";
 import WikiNewModal from "./components/WikiNewModal";
+import type { EntryType } from "./components/WikiNewModal";
 import SettingsModal from "./components/SettingsModal";
 import ExerciseNewModal from "./components/ExerciseNewModal";
+import DiagramEditor from "./components/DiagramEditor";
+import FlowchartInsertModal from "./components/FlowchartInsertModal";
 import SagaConsole from "./components/SagaConsole";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
@@ -43,6 +47,8 @@ const App: Component = () => {
   const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
+  const [insertMode, setInsertMode] = createSignal<"node" | "edge" | null>(null);
+  const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
   const prompts: PromptEntry[] = promptsData;
 
   createEffect(() => {
@@ -75,7 +81,7 @@ const App: Component = () => {
 
     store.setSaving(true);
     try {
-      if (file.section === "wiki") {
+      if (file.section === "wiki" && !file.filename.endsWith(".mmd")) {
         const h1 = extractH1(file.content);
         const newFilename = h1 ? wikiFilenameForTitle(h1, file.filename) : null;
 
@@ -220,7 +226,7 @@ const App: Component = () => {
   }
 
   async function handleCreateWikiEntry(
-    type: "file" | "folder",
+    type: EntryType,
     name: string,
     parentDir: string,
   ) {
@@ -229,6 +235,10 @@ const App: Component = () => {
     setWikiNewOpen(false);
     if (type === "file") {
       const filename = await createWikiFile(project, parentDir, name);
+      store.setProject(await loadProject(project.fs));
+      await handleFileSelect("wiki", filename);
+    } else if (type === "diagram") {
+      const filename = await createDiagramFile(project, parentDir, name);
       store.setProject(await loadProject(project.fs));
       await handleFileSelect("wiki", filename);
     } else {
@@ -274,7 +284,8 @@ const App: Component = () => {
     }
   }
 
-  const isWikiOpen = () => store.openFile()?.section === "wiki";
+  const isWikiOpen = () =>
+    store.openFile()?.section === "wiki" && !store.openFile()?.filename.endsWith(".mmd");
 
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
@@ -296,6 +307,9 @@ const App: Component = () => {
               onToggleView={() => setViewMarkdown((v) => !v)}
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
+              isDiagram={isDiagram()}
+              onInsertNode={() => setInsertMode("node")}
+              onInsertEdge={() => setInsertMode("edge")}
             />
             <Show
               when={store.openFile()}
@@ -323,12 +337,23 @@ const App: Component = () => {
                   />
                 }
               >
-                <Editor
-                  fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
-                  content={store.openFile()!.content}
-                  onChange={handleChange}
-                  onWikiLinkClick={isWikiOpen() ? handleWikiLinkClick : undefined}
-                />
+                <Show
+                  when={isDiagram()}
+                  fallback={
+                    <Editor
+                      fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
+                      content={store.openFile()!.content}
+                      onChange={handleChange}
+                      onWikiLinkClick={isWikiOpen() ? handleWikiLinkClick : undefined}
+                    />
+                  }
+                >
+                  <DiagramEditor
+                    fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
+                    content={store.openFile()!.content}
+                    lightTheme={["light", "scifi", "romance"].includes(appSettings().theme)}
+                  />
+                </Show>
               </Show>
             </Show>
           </main>
@@ -361,6 +386,18 @@ const App: Component = () => {
             aiConfig={aiConfig()}
             onCreate={handleCreateExercise}
             onCancel={() => setExerciseNewOpen(false)}
+          />
+        </Show>
+        <Show when={insertMode() !== null && isDiagram()}>
+          <FlowchartInsertModal
+            initialMode={insertMode()!}
+            source={store.openFile()?.content ?? ""}
+            onInsert={(newSource) => {
+              handleChange(newSource);
+              setInsertMode(null);
+              handleSave();
+            }}
+            onCancel={() => setInsertMode(null)}
           />
         </Show>
         <Show when={settingsOpen()}>

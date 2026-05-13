@@ -62,7 +62,19 @@ export class BrowserFileSystem implements IFileSystem {
     } catch {
       return []; // subdir doesn't exist — not an error
     }
-    await collectMarkdownFiles(sub, "", names); // errors here propagate up
+    await collectFilesByExt(sub, "", ".md", names); // errors here propagate up
+    return names.sort();
+  }
+
+  async listDiagramFiles(subdir: string): Promise<string[]> {
+    const names: string[] = [];
+    let sub: FileSystemDirectoryHandle;
+    try {
+      sub = await this.handle.getDirectoryHandle(subdir);
+    } catch {
+      return [];
+    }
+    await collectFilesByExt(sub, "", ".mmd", names);
     return names.sort();
   }
 
@@ -97,9 +109,10 @@ async function collectSubdirs(
   }
 }
 
-async function collectMarkdownFiles(
+async function collectFilesByExt(
   dir: FileSystemDirectoryHandle,
   prefix: string,
+  ext: string,
   out: string[],
 ): Promise<void> {
   // Use explicit iterator protocol instead of `for await...of` to work around
@@ -110,12 +123,13 @@ async function collectMarkdownFiles(
     const { done, value } = await iter.next();
     if (done) break;
     const [name, handle] = value;
-    if (handle.kind === "file" && name.endsWith(".md")) {
+    if (handle.kind === "file" && name.endsWith(ext)) {
       out.push(prefix ? `${prefix}/${name}` : name);
     } else if (handle.kind === "directory") {
-      await collectMarkdownFiles(
+      await collectFilesByExt(
         handle as FileSystemDirectoryHandle,
         prefix ? `${prefix}/${name}` : name,
+        ext,
         out,
       );
     }

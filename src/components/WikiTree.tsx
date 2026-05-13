@@ -53,8 +53,33 @@ function buildTree(files: string[], dirs: string[]): TreeNode[] {
 }
 
 function displayName(name: string): string {
-  return name.replace(/\.md$/, "").replace(/[-_]/g, " ");
+  return name.replace(/\.md$/, "").replace(/\.mmd$/, "").replace(/[-_]/g, " ");
 }
+
+const WikiIcon = () => (
+  <svg class="wiki-file-icon" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <rect x="2" y="1" width="8" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <line x1="4" y1="5" x2="8" y2="5" stroke="currentColor" stroke-width="1"/>
+    <line x1="4" y1="7.5" x2="8" y2="7.5" stroke="currentColor" stroke-width="1"/>
+    <line x1="4" y1="10" x2="6.5" y2="10" stroke="currentColor" stroke-width="1"/>
+  </svg>
+);
+
+const DiagramIcon = () => (
+  <svg class="wiki-file-icon" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="3" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <circle cx="11" cy="3.5" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <circle cx="11" cy="10.5" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/>
+    <line x1="5" y1="6.2" x2="9" y2="4.3" stroke="currentColor" stroke-width="1"/>
+    <line x1="5" y1="7.8" x2="9" y2="9.7" stroke="currentColor" stroke-width="1"/>
+  </svg>
+);
+
+const FolderIcon = () => (
+  <svg class="wiki-file-icon wiki-folder-icon" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M1 4.5 Q1 3.5 2 3.5 L5 3.5 L6.2 4.8 L12 4.8 Q13 4.8 13 5.8 L13 11 Q13 12 12 12 L2 12 Q1 12 1 11 Z" fill="none" stroke="currentColor" stroke-width="1.2"/>
+  </svg>
+);
 
 interface CtxMenu {
   x: number;
@@ -97,6 +122,7 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
               {expanded() ? "▾" : "▸"}
             </button>
           </span>
+          <FolderIcon />
           <span class="toc-label wiki-dir-label">
             {(props.node as TreeDir).name}
           </span>
@@ -126,6 +152,7 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
           }
         >
           <span class="toc-expand-cell" />
+          {(props.node as TreeFile).name.endsWith(".mmd") ? <DiagramIcon /> : <WikiIcon />}
           <span class="toc-label">{displayName((props.node as TreeFile).name)}</span>
         </li>
       </Show>
@@ -135,6 +162,7 @@ const TreeNodeItem: Component<TreeNodeItemProps> = (props) => {
 
 interface Props {
   files: string[];
+  diagramFiles?: string[];
   dirs: string[];
   activeFilename?: string | null;
   onSelect: (path: string) => void;
@@ -143,7 +171,7 @@ interface Props {
 }
 
 const WikiTree: Component<Props> = (props) => {
-  const tree = () => buildTree(props.files, props.dirs);
+  const tree = () => buildTree([...props.files, ...(props.diagramFiles ?? [])], props.dirs);
   const [ctxMenu, setCtxMenu] = createSignal<CtxMenu | null>(null);
 
   createEffect(() => {

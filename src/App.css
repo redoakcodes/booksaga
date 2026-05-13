@@ -211,6 +211,21 @@ html, body, #root {
 .wiki-dir { cursor: pointer; }
 .wiki-dir-label { font-weight: 600; color: var(--text-heading); font-size: 12px; text-transform: none; }
 
+.wiki-file-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  margin-right: 4px;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.wiki-folder-icon { color: var(--accent); }
+
+.file-item.active .wiki-file-icon { color: inherit; }
+
 .toc-label {
   flex: 1;
   overflow: hidden;
@@ -1211,6 +1226,54 @@ html, body, #root {
   --accent-bg-md: rgba(255,102,0,0.20);
   --accent-selection: rgba(0,170,56,0.28);
   --accent-underline: rgba(255,102,0,0.45);
+}
+
+/* ── Diagram editor ── */
+
+.diagram-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 24px;
+  overflow: auto;
+  background: var(--bg);
+}
+
+.diagram-canvas {
+  max-width: 100%;
+}
+
+.diagram-canvas svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.diagram-empty {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+  margin-top: 40px;
+}
+
+.diagram-error {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: rgba(224,108,117,0.1);
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  color: var(--danger);
+  font-size: 12px;
+  font-family: ui-monospace, monospace;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.diagram-insert-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 8px 0 16px;
 }
 
 /* ── Saga Console ── */

@@ -9,6 +9,8 @@ export interface IFileSystem {
   writeFile(pathParts: string[], content: string): Promise<void>;
   /** List all .md filenames (relative to subdir) recursively. */
   listMarkdownFiles(subdir: string): Promise<string[]>;
+  /** List all .mmd filenames (relative to subdir) recursively. */
+  listDiagramFiles(subdir: string): Promise<string[]>;
   /** List all subdirectory paths (relative to subdir) recursively. */
   listSubdirs(subdir: string): Promise<string[]>;
   /** Delete a file by path parts relative to the project root. */

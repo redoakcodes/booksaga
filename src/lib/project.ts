@@ -14,6 +14,7 @@ export interface ProjectModel {
   chapters: string[];
   wikiFiles: string[];
   wikiDirs: string[];
+  diagramFiles: string[];
   exerciseFiles: string[];
   wikiIndex: WikiIndex;
 }
@@ -29,6 +30,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
 
   const wikiFiles = await fs.listMarkdownFiles(WIKI_DIR);
   const wikiDirs = await fs.listSubdirs(WIKI_DIR);
+  const diagramFiles = await fs.listDiagramFiles(WIKI_DIR);
   const exerciseFiles = await fs.listMarkdownFiles(EXERCISES_DIR);
 
   const wikiContents = new Map<string, string>();
@@ -38,7 +40,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   }
   const wikiIndex = buildWikiIndex(wikiContents);
 
-  return { fs, config, toc, chapters, wikiFiles, wikiDirs, exerciseFiles, wikiIndex };
+  return { fs, config, toc, chapters, wikiFiles, wikiDirs, diagramFiles, exerciseFiles, wikiIndex };
 }
 
 export async function readFile(
@@ -204,6 +206,20 @@ export async function createExerciseFile(
     `-${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}.md`;
   const content = `# ${exerciseText.trim()}\n\n# \n`;
   await model.fs.writeFile([EXERCISES_DIR, filename], content);
+  return filename;
+}
+
+/** Create a new flowchart diagram file and return its relative path under wiki/. */
+export async function createDiagramFile(
+  model: ProjectModel,
+  parentDir: string,
+  name: string,
+): Promise<string> {
+  const slug =
+    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+  const filename = parentDir ? `${parentDir}/${slug}` : slug;
+  const content = `%% booksaga: flowchart\nflowchart TD\n`;
+  await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
   return filename;
 }
 
