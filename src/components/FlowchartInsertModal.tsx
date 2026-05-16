@@ -1,18 +1,21 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import {
+  appendDiagramLink,
   appendEdge,
   appendNode,
   nextNodeId,
+  parseDiagramLinks,
   parseFlowNodes,
   type EdgeStyle,
   type NodeShape,
 } from "../lib/flowchart";
 
-type Mode = "node" | "edge";
+type Mode = "node" | "edge" | "backlink";
 
 interface Props {
   initialMode: Mode;
   source: string;
+  wikiFiles: string[];
   onInsert: (newSource: string) => void;
   onCancel: () => void;
 }
@@ -45,6 +48,11 @@ const FlowchartInsertModal: Component<Props> = (props) => {
   const [edgeLabel, setEdgeLabel] = createSignal("");
   const [edgeStyle, setEdgeStyle] = createSignal<EdgeStyle>("solid");
 
+  // Backlink form
+  const existingLinks = () => parseDiagramLinks(props.source);
+  const [linkNodeId, setLinkNodeId] = createSignal("");
+  const [linkWikiFile, setLinkWikiFile] = createSignal("");
+
   function handleInsertNode(e: Event) {
     e.preventDefault();
     const label = nodeLabel().trim();
@@ -66,6 +74,18 @@ const FlowchartInsertModal: Component<Props> = (props) => {
     return ns.length >= 2 && fromId() && toId() && fromId() !== toId();
   };
 
+  function handleInsertBacklink(e: Event) {
+    e.preventDefault();
+    const nid = linkNodeId();
+    const wf = linkWikiFile();
+    if (!nid || !wf) return;
+    props.onInsert(appendDiagramLink(props.source, nid, wf));
+  }
+
+  function wikiDisplayName(path: string): string {
+    return path.replace(/\.md$/, "").replace(/[-_]/g, " ").replace(/\//g, " / ");
+  }
+
   return (
     <div class="modal-overlay" onClick={props.onCancel}>
       <div class="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -85,6 +105,13 @@ const FlowchartInsertModal: Component<Props> = (props) => {
             onClick={() => setMode("edge")}
           >
             Edge
+          </button>
+          <button
+            type="button"
+            class={`new-modal-type-btn${mode() === "backlink" ? " active" : ""}`}
+            onClick={() => setMode("backlink")}
+          >
+            Backlink
           </button>
         </div>
 
@@ -120,6 +147,64 @@ const FlowchartInsertModal: Component<Props> = (props) => {
               <button type="submit" class="btn-primary" disabled={!nodeLabel().trim()}>Insert</button>
             </div>
           </form>
+        </Show>
+
+        <Show when={mode() === "backlink"}>
+          <Show
+            when={nodes().length >= 1}
+            fallback={<p class="diagram-insert-hint">Add at least one node before linking.</p>}
+          >
+            <Show
+              when={props.wikiFiles.length >= 1}
+              fallback={<p class="diagram-insert-hint">No wiki pages found.</p>}
+            >
+              <form onSubmit={handleInsertBacklink}>
+                <div class="new-modal-field">
+                  <label class="new-modal-label" for="link-node">Node</label>
+                  <select
+                    id="link-node"
+                    class="new-modal-input"
+                    value={linkNodeId()}
+                    onChange={(e) => setLinkNodeId(e.currentTarget.value)}
+                  >
+                    <option value="">— select —</option>
+                    <For each={nodes()}>
+                      {(n) => (
+                        <option value={n.id}>
+                          {n.label}{existingLinks().has(n.id) ? " (linked)" : ""}
+                        </option>
+                      )}
+                    </For>
+                  </select>
+                </div>
+                <div class="new-modal-field">
+                  <label class="new-modal-label" for="link-wiki">Wiki page</label>
+                  <select
+                    id="link-wiki"
+                    class="new-modal-input"
+                    value={linkWikiFile()}
+                    onChange={(e) => setLinkWikiFile(e.currentTarget.value)}
+                  >
+                    <option value="">— select —</option>
+                    <For each={props.wikiFiles}>
+                      {(f) => <option value={f}>{wikiDisplayName(f)}</option>}
+                    </For>
+                  </select>
+                </div>
+                <div class="modal-actions">
+                  <button type="button" class="btn-secondary" onClick={props.onCancel}>Cancel</button>
+                  <button type="submit" class="btn-primary" disabled={!linkNodeId() || !linkWikiFile()}>
+                    {existingLinks().has(linkNodeId()) ? "Update" : "Link"}
+                  </button>
+                </div>
+              </form>
+            </Show>
+          </Show>
+          <Show when={nodes().length < 1 || props.wikiFiles.length < 1}>
+            <div class="modal-actions">
+              <button type="button" class="btn-secondary" onClick={props.onCancel}>Cancel</button>
+            </div>
+          </Show>
         </Show>
 
         <Show when={mode() === "edge"}>

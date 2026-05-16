@@ -18,6 +18,7 @@ interface Props {
   isDiagram?: boolean;
   onInsertNode?: () => void;
   onInsertEdge?: () => void;
+  onInsertBacklink?: () => void;
 }
 
 type OpenMenu = "menu" | "format" | "insert" | null;
@@ -104,6 +105,10 @@ const Toolbar: Component<Props> = (props) => {
                 </button>
                 <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
                   <span class="toolbar-item-label">Edge…</span>
+                </button>
+                <div class="toolbar-divider" />
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
+                  <span class="toolbar-item-label">Backlink…</span>
                 </button>
               </div>
             </Show>

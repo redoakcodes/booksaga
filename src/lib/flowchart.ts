@@ -65,6 +65,37 @@ export function appendNode(
   return source.trimEnd() + `\n  ${formatNode(id, label, shape)}\n`;
 }
 
+/** Parse %% link <nodeId> <wikiFile> annotations from the header comments. */
+export function parseDiagramLinks(source: string): Map<string, string> {
+  const links = new Map<string, string>();
+  const re = /^%% link\s+([A-Za-z0-9_]+)\s+(.+?)\s*$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    links.set(m[1], m[2]);
+  }
+  return links;
+}
+
+/**
+ * Insert (or update) a %% link annotation in the header comment block.
+ * If a link for nodeId already exists, it is replaced in-place.
+ * Otherwise the new line is appended after the last leading %% line.
+ */
+export function appendDiagramLink(source: string, nodeId: string, wikiFile: string): string {
+  const existing = new RegExp(`^%% link ${nodeId}\\s+.+$`, "m");
+  if (existing.test(source)) {
+    return source.replace(existing, `%% link ${nodeId} ${wikiFile}`);
+  }
+  const lines = source.split("\n");
+  let lastComment = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("%%")) lastComment = i;
+    else break;
+  }
+  lines.splice(lastComment + 1, 0, `%% link ${nodeId} ${wikiFile}`);
+  return lines.join("\n");
+}
+
 /** Return the source with a new edge appended. */
 export function appendEdge(
   source: string,

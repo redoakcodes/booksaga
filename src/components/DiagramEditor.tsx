@@ -1,10 +1,12 @@
 import mermaid from "mermaid";
 import { createEffect, createSignal, Show, type Component } from "solid-js";
+import { parseDiagramLinks } from "../lib/flowchart";
 
 interface Props {
   fileKey: string;
   content: string;
   lightTheme?: boolean;
+  onWikiLinkClick?: (filename: string) => void;
 }
 
 let initialized = false;
@@ -31,9 +33,15 @@ const DiagramEditor: Component<Props> = (props) => {
 
     if (!containerRef) return;
 
-    // Strip the booksaga comment header for rendering
-    const source = content.replace(/^%%[^\n]*\n/gm, "").trim();
-    if (!source || source === "flowchart TD" || source === "flowchart LR") {
+    // Strip all %% comment lines before handing to Mermaid
+    const renderSource = content
+      .split("\n")
+      .filter((l) => !l.trimStart().startsWith("%%"))
+      .join("\n")
+      .trim();
+
+    const bodyLines = renderSource.split("\n").slice(1).filter((l) => l.trim());
+    if (!renderSource || bodyLines.length === 0) {
       containerRef.innerHTML = "";
       setEmpty(true);
       setError(null);
@@ -43,9 +51,19 @@ const DiagramEditor: Component<Props> = (props) => {
 
     try {
       const id = "mmd" + Math.random().toString(36).slice(2, 9);
-      const { svg } = await mermaid.render(id, source);
+      const { svg } = await mermaid.render(id, renderSource);
       containerRef.innerHTML = svg;
       setError(null);
+
+      // Inject click handlers for nodes that have %% link annotations
+      const links = parseDiagramLinks(content);
+      for (const [nodeId, wikiFile] of links) {
+        const el = containerRef.querySelector(`[id^="flowchart-${nodeId}-"]`);
+        if (el) {
+          (el as HTMLElement).style.cursor = "pointer";
+          el.addEventListener("click", () => props.onWikiLinkClick?.(wikiFile));
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Invalid diagram syntax");
     }

@@ -47,7 +47,7 @@ const App: Component = () => {
   const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
-  const [insertMode, setInsertMode] = createSignal<"node" | "edge" | null>(null);
+  const [insertMode, setInsertMode] = createSignal<"node" | "edge" | "backlink" | null>(null);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
   const prompts: PromptEntry[] = promptsData;
 
@@ -310,6 +310,7 @@ const App: Component = () => {
               isDiagram={isDiagram()}
               onInsertNode={() => setInsertMode("node")}
               onInsertEdge={() => setInsertMode("edge")}
+              onInsertBacklink={() => setInsertMode("backlink")}
             />
             <Show
               when={store.openFile()}
@@ -352,6 +353,7 @@ const App: Component = () => {
                     fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
                     content={store.openFile()!.content}
                     lightTheme={["light", "scifi", "romance"].includes(appSettings().theme)}
+                    onWikiLinkClick={handleWikiLinkClick}
                   />
                 </Show>
               </Show>
@@ -392,6 +394,7 @@ const App: Component = () => {
           <FlowchartInsertModal
             initialMode={insertMode()!}
             source={store.openFile()?.content ?? ""}
+            wikiFiles={store.project()?.wikiFiles ?? []}
             onInsert={(newSource) => {
               handleChange(newSource);
               setInsertMode(null);
