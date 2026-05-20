@@ -19,6 +19,7 @@ import {
   createWikiFile,
   createWikiFolder,
   createDiagramFile,
+  createMindmapFile,
   deleteWikiEntry,
   extractH1,
   wikiFilenameForTitle,
@@ -29,6 +30,7 @@ import SettingsModal from "./components/SettingsModal";
 import ExerciseNewModal from "./components/ExerciseNewModal";
 import DiagramEditor from "./components/DiagramEditor";
 import FlowchartInsertModal from "./components/FlowchartInsertModal";
+import MindmapInsertModal from "./components/MindmapInsertModal";
 import SagaConsole from "./components/SagaConsole";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
@@ -49,6 +51,8 @@ const App: Component = () => {
   const [sagaOpen, setSagaOpen] = createSignal(false);
   const [insertMode, setInsertMode] = createSignal<"node" | "edge" | "backlink" | null>(null);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
+  const diagramType = (): "flowchart" | "mindmap" =>
+    store.openFile()?.content.startsWith("%% booksaga: mindmap") ? "mindmap" : "flowchart";
   const prompts: PromptEntry[] = promptsData;
 
   createEffect(() => {
@@ -241,6 +245,10 @@ const App: Component = () => {
       const filename = await createDiagramFile(project, parentDir, name);
       store.setProject(await loadProject(project.fs));
       await handleFileSelect("wiki", filename);
+    } else if (type === "mindmap") {
+      const filename = await createMindmapFile(project, parentDir, name);
+      store.setProject(await loadProject(project.fs));
+      await handleFileSelect("wiki", filename);
     } else {
       const folderPath = await createWikiFolder(project, parentDir, name);
       const newDirs = [...project.wikiDirs, folderPath].sort();
@@ -308,6 +316,7 @@ const App: Component = () => {
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
               isDiagram={isDiagram()}
+              diagramType={diagramType()}
               onInsertNode={() => setInsertMode("node")}
               onInsertEdge={() => setInsertMode("edge")}
               onInsertBacklink={() => setInsertMode("backlink")}
@@ -390,11 +399,22 @@ const App: Component = () => {
             onCancel={() => setExerciseNewOpen(false)}
           />
         </Show>
-        <Show when={insertMode() !== null && isDiagram()}>
+        <Show when={insertMode() !== null && isDiagram() && diagramType() === "flowchart"}>
           <FlowchartInsertModal
             initialMode={insertMode()!}
             source={store.openFile()?.content ?? ""}
             wikiFiles={store.project()?.wikiFiles ?? []}
+            onInsert={(newSource) => {
+              handleChange(newSource);
+              setInsertMode(null);
+              handleSave();
+            }}
+            onCancel={() => setInsertMode(null)}
+          />
+        </Show>
+        <Show when={insertMode() !== null && isDiagram() && diagramType() === "mindmap"}>
+          <MindmapInsertModal
+            source={store.openFile()?.content ?? ""}
             onInsert={(newSource) => {
               handleChange(newSource);
               setInsertMode(null);

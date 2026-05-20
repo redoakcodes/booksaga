@@ -16,6 +16,7 @@ interface Props {
   onNew?: () => void;
   onSettings?: () => void;
   isDiagram?: boolean;
+  diagramType?: "flowchart" | "mindmap";
   onInsertNode?: () => void;
   onInsertEdge?: () => void;
   onInsertBacklink?: () => void;
@@ -103,13 +104,15 @@ const Toolbar: Component<Props> = (props) => {
                 <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertNode?.())}>
                   <span class="toolbar-item-label">Node…</span>
                 </button>
-                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
-                  <span class="toolbar-item-label">Edge…</span>
-                </button>
-                <div class="toolbar-divider" />
-                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
-                  <span class="toolbar-item-label">Backlink…</span>
-                </button>
+                <Show when={props.diagramType !== "mindmap"}>
+                  <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
+                    <span class="toolbar-item-label">Edge…</span>
+                  </button>
+                  <div class="toolbar-divider" />
+                  <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
+                    <span class="toolbar-item-label">Backlink…</span>
+                  </button>
+                </Show>
               </div>
             </Show>
           </div>

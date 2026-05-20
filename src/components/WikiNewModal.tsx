@@ -1,6 +1,6 @@
 import { createMemo, createSignal, For, Show, type Component } from "solid-js";
 
-type EntryType = "file" | "folder" | "diagram";
+type EntryType = "file" | "folder" | "diagram" | "mindmap";
 
 interface DirNode {
   name: string;
@@ -118,7 +118,14 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
               class={`new-modal-type-btn${entryType() === "diagram" ? " active" : ""}`}
               onClick={() => setEntryType("diagram")}
             >
-              Diagram
+              Flowchart
+            </button>
+            <button
+              type="button"
+              class={`new-modal-type-btn${entryType() === "mindmap" ? " active" : ""}`}
+              onClick={() => setEntryType("mindmap")}
+            >
+              Mind Map
             </button>
           </div>
 
@@ -129,7 +136,7 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
               type="text"
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
-              placeholder={entryType() === "file" ? "Page title" : entryType() === "folder" ? "Folder name" : "Diagram name"}
+              placeholder={entryType() === "file" ? "Page title" : entryType() === "folder" ? "Folder name" : entryType() === "diagram" ? "Flowchart name" : "Mind map name"}
               autofocus
             />
           </div>

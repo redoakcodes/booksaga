@@ -4,6 +4,7 @@ import {
   loadProject, readFile, saveFile, initProject,
   renameWikiFile, extractH1, wikiFilenameForTitle,
   promoteOutlineEntry, createExerciseFile,
+  createMindmapFile,
   MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR,
 } from "../lib/project";
 import { TOC_TEMPLATE } from "../lib/toc";
@@ -297,6 +298,46 @@ describe("createExerciseFile", () => {
     const filename = await createExerciseFile(model, "Write about loss.");
     const content = fs.files.get(`${EXERCISES_DIR}/${filename}`)!;
     expect(content).toMatch(/^# $/m);
+  });
+});
+
+describe("createMindmapFile", () => {
+  it("creates a .mmd file with mindmap boilerplate", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createMindmapFile(model, "", "Story Structure");
+    expect(filename).toMatch(/\.mmd$/);
+    expect(fs.files.has(`${WIKI_DIR}/${filename}`)).toBe(true);
+  });
+
+  it("uses the name as the root node label", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createMindmapFile(model, "", "Story Structure");
+    const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
+    expect(content).toContain("root((Story Structure))");
+  });
+
+  it("writes the booksaga mindmap header", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createMindmapFile(model, "", "Themes");
+    const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
+    expect(content.startsWith("%% booksaga: mindmap")).toBe(true);
+  });
+
+  it("slugifies the filename", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createMindmapFile(model, "", "Character Arc");
+    expect(filename).toBe("character-arc.mmd");
+  });
+
+  it("places the file in the parent directory", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createMindmapFile(model, "structure", "Outline");
+    expect(filename).toBe("structure/outline.mmd");
   });
 });
 

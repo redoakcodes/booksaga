@@ -223,6 +223,21 @@ export async function createDiagramFile(
   return filename;
 }
 
+/** Create a new mind map file and return its relative path under wiki/. */
+export async function createMindmapFile(
+  model: ProjectModel,
+  parentDir: string,
+  name: string,
+): Promise<string> {
+  const slug =
+    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+  const filename = parentDir ? `${parentDir}/${slug}` : slug;
+  const rootLabel = name.trim();
+  const content = `%% booksaga: mindmap\nmindmap\n  root((${rootLabel}))\n`;
+  await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
+  return filename;
+}
+
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {
   if (section === "manuscript") return MANUSCRIPT_DIR;
   if (section === "wiki") return WIKI_DIR;
