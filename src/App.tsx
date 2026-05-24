@@ -414,7 +414,9 @@ const App: Component = () => {
         </Show>
         <Show when={insertMode() !== null && isDiagram() && diagramType() === "mindmap"}>
           <MindmapInsertModal
+            initialMode={insertMode() === "backlink" ? "backlink" : "node"}
             source={store.openFile()?.content ?? ""}
+            wikiFiles={store.project()?.wikiFiles ?? []}
             onInsert={(newSource) => {
               handleChange(newSource);
               setInsertMode(null);

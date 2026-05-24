@@ -1,6 +1,7 @@
 import mermaid from "mermaid";
 import { createEffect, createSignal, Show, type Component } from "solid-js";
 import { parseDiagramLinks } from "../lib/flowchart";
+import { parseMindmapLinks } from "../lib/mindmap";
 
 interface Props {
   fileKey: string;
@@ -18,6 +19,62 @@ function initMermaid(light: boolean) {
     fontFamily: "system-ui, -apple-system, sans-serif",
   });
   initialized = true;
+}
+
+function injectFlowchartHandlers(
+  container: HTMLDivElement,
+  links: Map<string, string>,
+  onClick: (file: string) => void,
+) {
+  for (const [nodeId, wikiFile] of links) {
+    // Mermaid prefixes SVG element IDs with the diagram ID, so use *=
+    const el = container.querySelector(`[id*="flowchart-${nodeId}-"]`);
+    if (el) {
+      (el as HTMLElement).style.cursor = "pointer";
+      el.addEventListener("click", () => onClick(wikiFile));
+    }
+  }
+}
+
+function injectMindmapHandlers(
+  container: HTMLDivElement,
+  links: Map<string, string>,
+  onClick: (file: string) => void,
+) {
+  for (const [label, wikiFile] of links) {
+    // Try Mermaid's .mindmap-node class first, fall back to text-content search.
+    let target: Element | null = null;
+
+    for (const group of container.querySelectorAll(".mindmap-node")) {
+      if (group.querySelector("text")?.textContent?.trim() === label) {
+        target = group;
+        break;
+      }
+    }
+
+    if (!target) {
+      const textEls = Array.from(container.querySelectorAll("text"));
+      const textEl = textEls.find((el) => el.textContent?.trim() === label);
+      if (textEl) {
+        let el: Element | null = textEl.parentElement;
+        while (el && el !== container) {
+          if (
+            el.tagName.toLowerCase() === "g" &&
+            el.querySelector("circle, rect, path, ellipse, polygon")
+          ) {
+            target = el;
+            break;
+          }
+          el = el.parentElement;
+        }
+      }
+    }
+
+    if (target) {
+      (target as HTMLElement).style.cursor = "pointer";
+      target.addEventListener("click", () => onClick(wikiFile));
+    }
+  }
 }
 
 const DiagramEditor: Component<Props> = (props) => {
@@ -55,13 +112,12 @@ const DiagramEditor: Component<Props> = (props) => {
       containerRef.innerHTML = svg;
       setError(null);
 
-      // Inject click handlers for nodes that have %% link annotations
-      const links = parseDiagramLinks(content);
-      for (const [nodeId, wikiFile] of links) {
-        const el = containerRef.querySelector(`[id^="flowchart-${nodeId}-"]`);
-        if (el) {
-          (el as HTMLElement).style.cursor = "pointer";
-          el.addEventListener("click", () => props.onWikiLinkClick?.(wikiFile));
+      if (props.onWikiLinkClick) {
+        const isMindmap = content.startsWith("%% booksaga: mindmap");
+        if (isMindmap) {
+          injectMindmapHandlers(containerRef, parseMindmapLinks(content), props.onWikiLinkClick);
+        } else {
+          injectFlowchartHandlers(containerRef, parseDiagramLinks(content), props.onWikiLinkClick);
         }
       }
     } catch (e) {

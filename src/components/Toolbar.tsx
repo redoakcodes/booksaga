@@ -108,11 +108,11 @@ const Toolbar: Component<Props> = (props) => {
                   <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
                     <span class="toolbar-item-label">Edge…</span>
                   </button>
-                  <div class="toolbar-divider" />
-                  <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
-                    <span class="toolbar-item-label">Backlink…</span>
-                  </button>
                 </Show>
+                <div class="toolbar-divider" />
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
+                  <span class="toolbar-item-label">Backlink…</span>
+                </button>
               </div>
             </Show>
           </div>

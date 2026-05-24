@@ -39,6 +39,37 @@ export function parseMindmapNodes(source: string): MindmapNode[] {
   return nodes;
 }
 
+/** Parse %% link "Label" wikiFile annotations from mindmap header comments. */
+export function parseMindmapLinks(source: string): Map<string, string> {
+  const links = new Map<string, string>();
+  const re = /^%% link\s+"([^"]+)"\s+(.+?)\s*$/gm;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(source)) !== null) {
+    links.set(m[1], m[2]);
+  }
+  return links;
+}
+
+/**
+ * Insert (or update) a %% link "Label" annotation in the mindmap header.
+ * If a link for nodeLabel already exists it is replaced in-place.
+ */
+export function appendMindmapLink(source: string, nodeLabel: string, wikiFile: string): string {
+  const escaped = nodeLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/"/g, '\\"');
+  const existing = new RegExp(`^%% link "${escaped}"\\s+.+$`, "m");
+  if (existing.test(source)) {
+    return source.replace(existing, `%% link "${nodeLabel}" ${wikiFile}`);
+  }
+  const lines = source.split("\n");
+  let lastComment = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].startsWith("%%")) lastComment = i;
+    else break;
+  }
+  lines.splice(lastComment + 1, 0, `%% link "${nodeLabel}" ${wikiFile}`);
+  return lines.join("\n");
+}
+
 /**
  * Append a new child node under the node whose label matches parentLabel.
  * The child is inserted after the last line of the parent's existing subtree.
