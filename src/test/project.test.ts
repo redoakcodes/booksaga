@@ -4,7 +4,7 @@ import {
   loadProject, readFile, saveFile, initProject,
   renameWikiFile, extractH1, wikiFilenameForTitle,
   promoteOutlineEntry, createExerciseFile,
-  createMindmapFile,
+  createMindmapFile, createTimelineFile,
   MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR,
 } from "../lib/project";
 import { TOC_TEMPLATE } from "../lib/toc";
@@ -337,6 +337,46 @@ describe("createMindmapFile", () => {
     const fs = new MockFileSystem();
     const model = await loadProject(fs);
     const filename = await createMindmapFile(model, "structure", "Outline");
+    expect(filename).toBe("structure/outline.mmd");
+  });
+});
+
+describe("createTimelineFile", () => {
+  it("creates a .mmd file with timeline boilerplate", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createTimelineFile(model, "", "Story Arc");
+    expect(filename).toMatch(/\.mmd$/);
+    expect(fs.files.has(`${WIKI_DIR}/${filename}`)).toBe(true);
+  });
+
+  it("writes the booksaga timeline header", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createTimelineFile(model, "", "Story Arc");
+    const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
+    expect(content.startsWith("%% booksaga: timeline")).toBe(true);
+  });
+
+  it("uses the name as the timeline title", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createTimelineFile(model, "", "Story Arc");
+    const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
+    expect(content).toContain("title Story Arc");
+  });
+
+  it("slugifies the filename", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createTimelineFile(model, "", "Character Arc");
+    expect(filename).toBe("character-arc.mmd");
+  });
+
+  it("places the file in the parent directory", async () => {
+    const fs = new MockFileSystem();
+    const model = await loadProject(fs);
+    const filename = await createTimelineFile(model, "structure", "Outline");
     expect(filename).toBe("structure/outline.mmd");
   });
 });

@@ -230,6 +230,20 @@ export async function createDiagramFile(
   return filename;
 }
 
+/** Create a new timeline file and return its relative path under wiki/. */
+export async function createTimelineFile(
+  model: ProjectModel,
+  parentDir: string,
+  name: string,
+): Promise<string> {
+  const slug =
+    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+  const filename = parentDir ? `${parentDir}/${slug}` : slug;
+  const content = `%% booksaga: timeline\ntimeline\n  title ${name.trim()}\n`;
+  await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
+  return filename;
+}
+
 /** Create a new mind map file and return its relative path under wiki/. */
 export async function createMindmapFile(
   model: ProjectModel,

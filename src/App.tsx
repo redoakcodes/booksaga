@@ -20,6 +20,7 @@ import {
   createWikiFolder,
   createDiagramFile,
   createMindmapFile,
+  createTimelineFile,
   deleteWikiEntry,
   extractH1,
   wikiFilenameForTitle,
@@ -264,6 +265,10 @@ const App: Component = () => {
       await handleFileSelect("wiki", filename);
     } else if (type === "mindmap") {
       const filename = await createMindmapFile(project, parentDir, name);
+      store.setProject(await loadProject(project.fs));
+      await handleFileSelect("wiki", filename);
+    } else if (type === "timeline") {
+      const filename = await createTimelineFile(project, parentDir, name);
       store.setProject(await loadProject(project.fs));
       await handleFileSelect("wiki", filename);
     } else {
