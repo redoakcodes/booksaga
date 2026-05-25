@@ -225,7 +225,7 @@ export async function createDiagramFile(
   const slug =
     name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
-  const content = `%% booksaga: flowchart\nflowchart TD\n`;
+  const content = `flowchart TD\n`;
   await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
   return filename;
 }
@@ -239,7 +239,7 @@ export async function createTimelineFile(
   const slug =
     name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
-  const content = `%% booksaga: timeline\ntimeline\n  title ${name.trim()}\n`;
+  const content = `timeline\n  title ${name.trim()}\n`;
   await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
   return filename;
 }
@@ -254,7 +254,7 @@ export async function createMindmapFile(
     name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
   const rootLabel = name.trim();
-  const content = `%% booksaga: mindmap\nmindmap\n  root((${rootLabel}))\n`;
+  const content = `mindmap\n  root((${rootLabel}))\n`;
   await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
   return filename;
 }

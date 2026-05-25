@@ -1,8 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { parseMindmapNodes } from "../lib/mindmap";
 
-const BASE = `%% booksaga: mindmap
-mindmap
+const BASE = `mindmap
   root((Story))
     Characters
       Hero

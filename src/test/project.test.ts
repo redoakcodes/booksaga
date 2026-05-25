@@ -318,12 +318,12 @@ describe("createMindmapFile", () => {
     expect(content).toContain("root((Story Structure))");
   });
 
-  it("writes the booksaga mindmap header", async () => {
+  it("starts with the mindmap declaration", async () => {
     const fs = new MockFileSystem();
     const model = await loadProject(fs);
     const filename = await createMindmapFile(model, "", "Themes");
     const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
-    expect(content.startsWith("%% booksaga: mindmap")).toBe(true);
+    expect(content.startsWith("mindmap")).toBe(true);
   });
 
   it("slugifies the filename", async () => {
@@ -350,12 +350,12 @@ describe("createTimelineFile", () => {
     expect(fs.files.has(`${WIKI_DIR}/${filename}`)).toBe(true);
   });
 
-  it("writes the booksaga timeline header", async () => {
+  it("starts with the timeline declaration", async () => {
     const fs = new MockFileSystem();
     const model = await loadProject(fs);
     const filename = await createTimelineFile(model, "", "Story Arc");
     const content = fs.files.get(`${WIKI_DIR}/${filename}`)!;
-    expect(content.startsWith("%% booksaga: timeline")).toBe(true);
+    expect(content.startsWith("timeline")).toBe(true);
   });
 
   it("uses the name as the timeline title", async () => {
