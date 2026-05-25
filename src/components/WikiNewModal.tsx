@@ -1,5 +1,7 @@
 import { createMemo, createSignal, For, Show, type Component } from "solid-js";
 
+type TopType = "file" | "folder" | "diagram";
+type DiagramSubtype = "diagram" | "mindmap" | "timeline";
 type EntryType = "file" | "folder" | "diagram" | "mindmap" | "timeline";
 
 interface DirNode {
@@ -79,17 +81,29 @@ export interface WikiNewModalProps {
 export type { EntryType };
 
 const WikiNewModal: Component<WikiNewModalProps> = (props) => {
-  const [entryType, setEntryType] = createSignal<EntryType>("file");
+  const [topType, setTopType] = createSignal<TopType>("file");
+  const [diagramSubtype, setDiagramSubtype] = createSignal<DiagramSubtype>("diagram");
   const [name, setName] = createSignal("");
   const [selectedDir, setSelectedDir] = createSignal(props.initialDir ?? "");
 
   const dirTree = createMemo(() => buildDirTree(props.wikiDirs));
 
+  const effectiveType = (): EntryType =>
+    topType() === "diagram" ? diagramSubtype() : topType();
+
+  const placeholder = () => {
+    if (topType() === "file") return "Page title";
+    if (topType() === "folder") return "Folder name";
+    if (diagramSubtype() === "mindmap") return "Mind map name";
+    if (diagramSubtype() === "timeline") return "Timeline name";
+    return "Flowchart name";
+  };
+
   function handleSubmit(e: Event) {
     e.preventDefault();
     const n = name().trim();
     if (!n) return;
-    props.onConfirm(entryType(), n, selectedDir());
+    props.onConfirm(effectiveType(), n, selectedDir());
   }
 
   return (
@@ -101,40 +115,52 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
           <div class="new-modal-type-toggle">
             <button
               type="button"
-              class={`new-modal-type-btn${entryType() === "file" ? " active" : ""}`}
-              onClick={() => setEntryType("file")}
+              class={`new-modal-type-btn${topType() === "file" ? " active" : ""}`}
+              onClick={() => setTopType("file")}
             >
               File
             </button>
             <button
               type="button"
-              class={`new-modal-type-btn${entryType() === "folder" ? " active" : ""}`}
-              onClick={() => setEntryType("folder")}
+              class={`new-modal-type-btn${topType() === "folder" ? " active" : ""}`}
+              onClick={() => setTopType("folder")}
             >
               Folder
             </button>
             <button
               type="button"
-              class={`new-modal-type-btn${entryType() === "diagram" ? " active" : ""}`}
-              onClick={() => setEntryType("diagram")}
+              class={`new-modal-type-btn${topType() === "diagram" ? " active" : ""}`}
+              onClick={() => setTopType("diagram")}
             >
-              Flowchart
-            </button>
-            <button
-              type="button"
-              class={`new-modal-type-btn${entryType() === "mindmap" ? " active" : ""}`}
-              onClick={() => setEntryType("mindmap")}
-            >
-              Mind Map
-            </button>
-            <button
-              type="button"
-              class={`new-modal-type-btn${entryType() === "timeline" ? " active" : ""}`}
-              onClick={() => setEntryType("timeline")}
-            >
-              Timeline
+              Diagram
             </button>
           </div>
+
+          <Show when={topType() === "diagram"}>
+            <div class="new-modal-type-toggle new-modal-subtype-toggle">
+              <button
+                type="button"
+                class={`new-modal-type-btn${diagramSubtype() === "diagram" ? " active" : ""}`}
+                onClick={() => setDiagramSubtype("diagram")}
+              >
+                Flowchart
+              </button>
+              <button
+                type="button"
+                class={`new-modal-type-btn${diagramSubtype() === "mindmap" ? " active" : ""}`}
+                onClick={() => setDiagramSubtype("mindmap")}
+              >
+                Mind Map
+              </button>
+              <button
+                type="button"
+                class={`new-modal-type-btn${diagramSubtype() === "timeline" ? " active" : ""}`}
+                onClick={() => setDiagramSubtype("timeline")}
+              >
+                Timeline
+              </button>
+            </div>
+          </Show>
 
           <div class="new-modal-field">
             <label class="new-modal-label">Name</label>
@@ -143,13 +169,7 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
               type="text"
               value={name()}
               onInput={(e) => setName(e.currentTarget.value)}
-              placeholder={
-                entryType() === "file" ? "Page title" :
-                entryType() === "folder" ? "Folder name" :
-                entryType() === "diagram" ? "Flowchart name" :
-                entryType() === "mindmap" ? "Mind map name" :
-                "Timeline name"
-              }
+              placeholder={placeholder()}
               autofocus
             />
           </div>

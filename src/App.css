@@ -889,6 +889,11 @@ html, body, #root {
 .new-modal-type-btn:hover { color: var(--text); background: var(--hover-bg-sm); }
 .new-modal-type-btn.active { background: var(--accent); color: #fff; }
 
+.new-modal-subtype-toggle {
+  margin-top: -12px;
+  margin-left: 8px;
+}
+
 .new-modal-field { margin-bottom: 16px; }
 
 .new-modal-label {
