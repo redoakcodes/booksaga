@@ -18,7 +18,7 @@ function stripShapeMarkers(raw: string): string {
   return raw.trim();
 }
 
-/** Extract all nodes from a Mermaid mindmap source (excluding the %% header and "mindmap" declaration). */
+/** Extract all nodes from a Mermaid mindmap source (excluding %% header and "mindmap" declaration). */
 export function parseMindmapNodes(source: string): MindmapNode[] {
   const lines = source
     .split("\n")
@@ -37,81 +37,4 @@ export function parseMindmapNodes(source: string): MindmapNode[] {
   }
 
   return nodes;
-}
-
-/** Parse %% link "Label" wikiFile annotations from mindmap header comments. */
-export function parseMindmapLinks(source: string): Map<string, string> {
-  const links = new Map<string, string>();
-  const re = /^%% link\s+"([^"]+)"\s+(.+?)\s*$/gm;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source)) !== null) {
-    links.set(m[1], m[2]);
-  }
-  return links;
-}
-
-/**
- * Insert (or update) a %% link "Label" annotation in the mindmap header.
- * If a link for nodeLabel already exists it is replaced in-place.
- */
-export function appendMindmapLink(source: string, nodeLabel: string, wikiFile: string): string {
-  const escaped = nodeLabel.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/"/g, '\\"');
-  const existing = new RegExp(`^%% link "${escaped}"\\s+.+$`, "m");
-  if (existing.test(source)) {
-    return source.replace(existing, `%% link "${nodeLabel}" ${wikiFile}`);
-  }
-  const lines = source.split("\n");
-  let lastComment = 0;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].startsWith("%%")) lastComment = i;
-    else break;
-  }
-  lines.splice(lastComment + 1, 0, `%% link "${nodeLabel}" ${wikiFile}`);
-  return lines.join("\n");
-}
-
-/**
- * Append a new child node under the node whose label matches parentLabel.
- * The child is inserted after the last line of the parent's existing subtree.
- */
-export function appendMindmapNode(
-  source: string,
-  parentLabel: string,
-  childLabel: string,
-): string {
-  const lines = source.split("\n");
-
-  let parentIdx = -1;
-  let parentIndent = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim() || line.trimStart().startsWith("%%")) continue;
-    const indent = line.length - line.trimStart().length;
-    const label = stripShapeMarkers(line.trimStart());
-    if (label === parentLabel) {
-      parentIdx = i;
-      parentIndent = indent;
-      break;
-    }
-  }
-
-  if (parentIdx === -1) return source;
-
-  // Walk past the parent's existing children (lines with greater indent)
-  let insertAfter = parentIdx;
-  for (let i = parentIdx + 1; i < lines.length; i++) {
-    const line = lines[i];
-    if (!line.trim()) continue;
-    const indent = line.length - line.trimStart().length;
-    if (indent > parentIndent) {
-      insertAfter = i;
-    } else {
-      break;
-    }
-  }
-
-  const childLine = " ".repeat(parentIndent + 2) + childLabel;
-  lines.splice(insertAfter + 1, 0, childLine);
-  return lines.join("\n");
 }

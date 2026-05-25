@@ -1,13 +1,12 @@
 import mermaid from "mermaid";
 import { createEffect, createSignal, Show, type Component } from "solid-js";
-import { parseDiagramLinks } from "../lib/flowchart";
-import { parseMindmapLinks } from "../lib/mindmap";
 
 interface Props {
   fileKey: string;
   content: string;
   lightTheme?: boolean;
   onWikiLinkClick?: (filename: string) => void;
+  wikiTitleMap?: Map<string, string>;
 }
 
 let initialized = false;
@@ -21,58 +20,42 @@ function initMermaid(light: boolean) {
   initialized = true;
 }
 
-function injectFlowchartHandlers(
+/**
+ * After rendering, find any node whose visible label matches a wiki page title
+ * and attach a click handler to navigate to that page.
+ *
+ * Flowchart nodes render as <div class="nodeLabel"> inside <foreignObject>.
+ * Mindmap nodes render as SVG <text> elements.
+ */
+function injectBacklinkHandlers(
   container: HTMLDivElement,
-  links: Map<string, string>,
+  wikiTitleMap: Map<string, string>,
   onClick: (file: string) => void,
 ) {
-  for (const [nodeId, wikiFile] of links) {
-    // Mermaid prefixes SVG element IDs with the diagram ID, so use *=
-    const el = container.querySelector(`[id*="flowchart-${nodeId}-"]`);
-    if (el) {
+  const normalized = new Map(
+    Array.from(wikiTitleMap).map(([title, file]) => [title.toLowerCase(), file]),
+  );
+
+  // Flowchart: labels live in foreignObject > .nodeLabel divs
+  for (const el of container.querySelectorAll(".nodeLabel")) {
+    const text = (el.textContent ?? "").trim();
+    const file = normalized.get(text.toLowerCase());
+    if (file) {
       (el as HTMLElement).style.cursor = "pointer";
-      el.addEventListener("click", () => onClick(wikiFile));
+      el.addEventListener("click", () => onClick(file));
     }
   }
-}
 
-function injectMindmapHandlers(
-  container: HTMLDivElement,
-  links: Map<string, string>,
-  onClick: (file: string) => void,
-) {
-  for (const [label, wikiFile] of links) {
-    // Try Mermaid's .mindmap-node class first, fall back to text-content search.
-    let target: Element | null = null;
-
-    for (const group of container.querySelectorAll(".mindmap-node")) {
-      if (group.querySelector("text")?.textContent?.trim() === label) {
-        target = group;
-        break;
+  // Mindmap: labels live in SVG <text> elements
+  for (const textEl of container.querySelectorAll("text")) {
+    const text = (textEl.textContent ?? "").trim();
+    const file = normalized.get(text.toLowerCase());
+    if (file) {
+      const target = textEl.closest(".mindmap-node") ?? textEl.parentElement;
+      if (target) {
+        (target as HTMLElement).style.cursor = "pointer";
+        target.addEventListener("click", () => onClick(file));
       }
-    }
-
-    if (!target) {
-      const textEls = Array.from(container.querySelectorAll("text"));
-      const textEl = textEls.find((el) => el.textContent?.trim() === label);
-      if (textEl) {
-        let el: Element | null = textEl.parentElement;
-        while (el && el !== container) {
-          if (
-            el.tagName.toLowerCase() === "g" &&
-            el.querySelector("circle, rect, path, ellipse, polygon")
-          ) {
-            target = el;
-            break;
-          }
-          el = el.parentElement;
-        }
-      }
-    }
-
-    if (target) {
-      (target as HTMLElement).style.cursor = "pointer";
-      target.addEventListener("click", () => onClick(wikiFile));
     }
   }
 }
@@ -86,11 +69,10 @@ const DiagramEditor: Component<Props> = (props) => {
 
   createEffect(async () => {
     const content = props.content;
-    props.fileKey; // track — re-render when file changes
+    props.fileKey;
 
     if (!containerRef) return;
 
-    // Strip all %% comment lines before handing to Mermaid
     const renderSource = content
       .split("\n")
       .filter((l) => !l.trimStart().startsWith("%%"))
@@ -112,13 +94,8 @@ const DiagramEditor: Component<Props> = (props) => {
       containerRef.innerHTML = svg;
       setError(null);
 
-      if (props.onWikiLinkClick) {
-        const isMindmap = content.startsWith("%% booksaga: mindmap");
-        if (isMindmap) {
-          injectMindmapHandlers(containerRef, parseMindmapLinks(content), props.onWikiLinkClick);
-        } else {
-          injectFlowchartHandlers(containerRef, parseDiagramLinks(content), props.onWikiLinkClick);
-        }
+      if (props.onWikiLinkClick && props.wikiTitleMap && props.wikiTitleMap.size > 0) {
+        injectBacklinkHandlers(containerRef, props.wikiTitleMap, props.onWikiLinkClick);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Invalid diagram syntax");
@@ -129,7 +106,7 @@ const DiagramEditor: Component<Props> = (props) => {
     <div class="diagram-editor">
       <Show when={empty()}>
         <div class="diagram-empty">
-          Use Insert → Node to add your first node.
+          Edit the diagram source (⌘E) to add content.
         </div>
       </Show>
       <div class="diagram-canvas" ref={containerRef} />

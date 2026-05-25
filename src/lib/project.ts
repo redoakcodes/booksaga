@@ -17,6 +17,7 @@ export interface ProjectModel {
   diagramFiles: string[];
   exerciseFiles: string[];
   wikiIndex: WikiIndex;
+  wikiTitleMap: Map<string, string>; // original H1 title → wiki filename
 }
 
 export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
@@ -40,7 +41,13 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   }
   const wikiIndex = buildWikiIndex(wikiContents);
 
-  return { fs, config, toc, chapters, wikiFiles, wikiDirs, diagramFiles, exerciseFiles, wikiIndex };
+  const wikiTitleMap = new Map<string, string>();
+  for (const [filename, content] of wikiContents) {
+    const h1 = extractH1(content);
+    if (h1) wikiTitleMap.set(h1, filename);
+  }
+
+  return { fs, config, toc, chapters, wikiFiles, wikiDirs, diagramFiles, exerciseFiles, wikiIndex, wikiTitleMap };
 }
 
 export async function readFile(

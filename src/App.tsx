@@ -29,8 +29,7 @@ import type { EntryType } from "./components/WikiNewModal";
 import SettingsModal from "./components/SettingsModal";
 import ExerciseNewModal from "./components/ExerciseNewModal";
 import DiagramEditor from "./components/DiagramEditor";
-import FlowchartInsertModal from "./components/FlowchartInsertModal";
-import MindmapInsertModal from "./components/MindmapInsertModal";
+import DiagramSourceEditor from "./components/DiagramSourceEditor";
 import SagaConsole from "./components/SagaConsole";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
@@ -38,6 +37,20 @@ import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
 import "./App.css";
+
+function updateWikiTitleMap(
+  map: Map<string, string>,
+  filename: string,
+  content: string,
+): Map<string, string> {
+  const next = new Map(map);
+  for (const [title, fn] of next) {
+    if (fn === filename) { next.delete(title); break; }
+  }
+  const h1 = extractH1(content);
+  if (h1) next.set(h1, filename);
+  return next;
+}
 
 const App: Component = () => {
   const [pendingCreate, setPendingCreate] = createSignal<string | null>(null);
@@ -49,11 +62,11 @@ const App: Component = () => {
   const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
-  const [insertMode, setInsertMode] = createSignal<"node" | "edge" | "backlink" | null>(null);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
-  const diagramType = (): "flowchart" | "mindmap" =>
-    store.openFile()?.content.startsWith("%% booksaga: mindmap") ? "mindmap" : "flowchart";
   const prompts: PromptEntry[] = promptsData;
+
+  const wikiTitleMap = () => store.project()?.wikiTitleMap ?? new Map<string, string>();
+  const wikiTitles = () => Array.from(wikiTitleMap().keys());
 
   createEffect(() => {
     const project = store.project();
@@ -100,6 +113,7 @@ const App: Component = () => {
           store.setProject({
             ...project,
             wikiIndex: updateWikiIndex(project.wikiIndex, file.filename, file.content),
+            wikiTitleMap: updateWikiTitleMap(project.wikiTitleMap, file.filename, file.content),
           });
         }
       } else {
@@ -161,6 +175,12 @@ const App: Component = () => {
     }
   }
 
+  // Navigate to a wiki page by filename (used by diagram auto-backlinks)
+  async function handleWikiFileClick(filename: string) {
+    store.setActiveSection("wiki");
+    await handleFileSelect("wiki", filename);
+  }
+
   function handleChange(markdown: string) {
     store.patchOpenFile({ content: markdown, dirty: true });
   }
@@ -184,7 +204,6 @@ const App: Component = () => {
 
     await deleteWikiEntry(project, t.path, t.kind);
 
-    // Close the open file if it was deleted or lived inside the deleted dir.
     const open = store.openFile();
     if (open?.section === "wiki") {
       const affected =
@@ -194,7 +213,6 @@ const App: Component = () => {
       if (affected) store.setOpenFile(null);
     }
 
-    // Optimistically update the project model.
     const prefix = t.path + "/";
     store.setProject({
       ...project,
@@ -211,7 +229,6 @@ const App: Component = () => {
     const section = store.activeSection();
     if (section === "wiki") handleOpenWikiNew();
     else if (section === "exercises") setExerciseNewOpen(true);
-    // manuscript: not yet implemented
   }
 
   async function handleCreateExercise(exerciseText: string) {
@@ -271,7 +288,6 @@ const App: Component = () => {
     const wasOpen = sagaOpen();
     setSagaOpen((v) => !v);
     if (wasOpen) {
-      // Return focus to the editor when closing
       const pm = document.querySelector(".ProseMirror") as HTMLElement | null;
       pm?.focus();
     }
@@ -281,6 +297,10 @@ const App: Component = () => {
     if ((e.ctrlKey || e.metaKey) && e.key === "s") {
       e.preventDefault();
       handleSave();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "e") {
+      e.preventDefault();
+      setViewMarkdown((v) => !v);
     }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "p") {
       e.preventDefault();
@@ -316,10 +336,6 @@ const App: Component = () => {
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
               isDiagram={isDiagram()}
-              diagramType={diagramType()}
-              onInsertNode={() => setInsertMode("node")}
-              onInsertEdge={() => setInsertMode("edge")}
-              onInsertBacklink={() => setInsertMode("backlink")}
             />
             <Show
               when={store.openFile()}
@@ -339,12 +355,18 @@ const App: Component = () => {
               <Show
                 when={!viewMarkdown()}
                 fallback={
-                  <textarea
-                    class="markdown-source"
-                    value={store.openFile()?.content ?? ""}
-                    onInput={(e) => handleChange(e.currentTarget.value)}
-                    spellcheck={false}
-                  />
+                  isDiagram()
+                    ? <DiagramSourceEditor
+                        content={store.openFile()!.content}
+                        onChange={handleChange}
+                        wikiTitles={wikiTitles()}
+                      />
+                    : <textarea
+                        class="markdown-source"
+                        value={store.openFile()?.content ?? ""}
+                        onInput={(e) => handleChange(e.currentTarget.value)}
+                        spellcheck={false}
+                      />
                 }
               >
                 <Show
@@ -362,7 +384,8 @@ const App: Component = () => {
                     fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
                     content={store.openFile()!.content}
                     lightTheme={["light", "scifi", "romance"].includes(appSettings().theme)}
-                    onWikiLinkClick={handleWikiLinkClick}
+                    onWikiLinkClick={handleWikiFileClick}
+                    wikiTitleMap={wikiTitleMap()}
                   />
                 </Show>
               </Show>
@@ -397,32 +420,6 @@ const App: Component = () => {
             aiConfig={aiConfig()}
             onCreate={handleCreateExercise}
             onCancel={() => setExerciseNewOpen(false)}
-          />
-        </Show>
-        <Show when={insertMode() !== null && isDiagram() && diagramType() === "flowchart"}>
-          <FlowchartInsertModal
-            initialMode={insertMode()!}
-            source={store.openFile()?.content ?? ""}
-            wikiFiles={store.project()?.wikiFiles ?? []}
-            onInsert={(newSource) => {
-              handleChange(newSource);
-              setInsertMode(null);
-              handleSave();
-            }}
-            onCancel={() => setInsertMode(null)}
-          />
-        </Show>
-        <Show when={insertMode() !== null && isDiagram() && diagramType() === "mindmap"}>
-          <MindmapInsertModal
-            initialMode={insertMode() === "backlink" ? "backlink" : "node"}
-            source={store.openFile()?.content ?? ""}
-            wikiFiles={store.project()?.wikiFiles ?? []}
-            onInsert={(newSource) => {
-              handleChange(newSource);
-              setInsertMode(null);
-              handleSave();
-            }}
-            onCancel={() => setInsertMode(null)}
           />
         </Show>
         <Show when={settingsOpen()}>

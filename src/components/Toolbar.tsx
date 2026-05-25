@@ -16,24 +16,19 @@ interface Props {
   onNew?: () => void;
   onSettings?: () => void;
   isDiagram?: boolean;
-  diagramType?: "flowchart" | "mindmap";
-  onInsertNode?: () => void;
-  onInsertEdge?: () => void;
-  onInsertBacklink?: () => void;
 }
 
-type OpenMenu = "menu" | "format" | "insert" | null;
+type OpenMenu = "menu" | "format" | null;
 
 const Toolbar: Component<Props> = (props) => {
   const [openMenu, setOpenMenu] = createSignal<OpenMenu>(null);
   let menuRef!: HTMLDivElement;
   let formatRef!: HTMLDivElement;
-  let insertRef!: HTMLDivElement;
 
   createEffect(() => {
     const which = openMenu();
     if (!which) return;
-    const ref = which === "menu" ? menuRef : which === "insert" ? insertRef : formatRef;
+    const ref = which === "menu" ? menuRef : formatRef;
     const handler = (e: MouseEvent) => {
       if (!ref.contains(e.target as Node)) setOpenMenu(null);
     };
@@ -76,10 +71,11 @@ const Toolbar: Component<Props> = (props) => {
                 <span class="toolbar-item-hint">{modKeyLabel}S</span>
               </button>
               <div class="toolbar-divider" />
-              <button class="toolbar-menu-item" onClick={() => run(props.onToggleView)}>
+              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onToggleView)}>
                 <span class="toolbar-item-label">
                   {props.viewMarkdown ? "View Formatted" : "View Markdown"}
                 </span>
+                <span class="toolbar-item-hint">{modKeyLabel}E</span>
               </button>
               <div class="toolbar-divider" />
               <button class="toolbar-menu-item" onClick={() => run(() => props.onSettings?.())}>
@@ -89,101 +85,72 @@ const Toolbar: Component<Props> = (props) => {
           </Show>
         </div>
 
-        {/* ── Insert (diagrams) ── */}
-        <Show when={props.isDiagram}>
-          <div class="toolbar-menu" ref={insertRef}>
+        {/* ── Format (text editor only) ── */}
+        <Show when={!props.isDiagram}>
+          <div class="toolbar-menu" ref={formatRef}>
             <button
               class="toolbar-menu-btn"
-              classList={{ active: openMenu() === "insert" }}
-              onClick={() => toggle("insert")}
+              classList={{ active: openMenu() === "format" }}
+              onClick={() => toggle("format")}
             >
-              Insert
+              Format
             </button>
-            <Show when={openMenu() === "insert"}>
+            <Show when={openMenu() === "format"}>
               <div class="toolbar-dropdown">
-                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertNode?.())}>
-                  <span class="toolbar-item-label">Node…</span>
+
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strong"))}>
+                  <span class="toolbar-item-label fmt-bold">Bold</span>
+                  <span class="toolbar-item-hint">**text**</span>
                 </button>
-                <Show when={props.diagramType !== "mindmap"}>
-                  <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertEdge?.())}>
-                    <span class="toolbar-item-label">Edge…</span>
-                  </button>
-                </Show>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("em"))}>
+                  <span class="toolbar-item-label fmt-italic">Italic</span>
+                  <span class="toolbar-item-hint">*text*</span>
+                </button>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strikethrough"))}>
+                  <span class="toolbar-item-label fmt-strike">Strikethrough</span>
+                  <span class="toolbar-item-hint">~~text~~</span>
+                </button>
+
                 <div class="toolbar-divider" />
-                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertBacklink?.())}>
-                  <span class="toolbar-item-label">Backlink…</span>
+
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(1))}>
+                  <span class="toolbar-item-label">Heading 1</span>
+                  <span class="toolbar-item-hint">#</span>
                 </button>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(2))}>
+                  <span class="toolbar-item-label">Heading 2</span>
+                  <span class="toolbar-item-hint">##</span>
+                </button>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(3))}>
+                  <span class="toolbar-item-label">Heading 3</span>
+                  <span class="toolbar-item-hint">###</span>
+                </button>
+
+                <div class="toolbar-divider" />
+
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBulletList)}>
+                  <span class="toolbar-item-label">Bullets</span>
+                  <span class="toolbar-item-hint">-</span>
+                </button>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyOrderedList)}>
+                  <span class="toolbar-item-label">List</span>
+                  <span class="toolbar-item-hint">1.</span>
+                </button>
+
+                <div class="toolbar-divider" />
+
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBlockquote)}>
+                  <span class="toolbar-item-label">Quote</span>
+                  <span class="toolbar-item-hint">&gt;</span>
+                </button>
+                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyInlineCode)}>
+                  <span class="toolbar-item-label">Code</span>
+                  <span class="toolbar-item-hint">`</span>
+                </button>
+
               </div>
             </Show>
           </div>
-        </Show>
-
-        {/* ── Format (text editor) ── */}
-        <Show when={!props.isDiagram}>
-        <div class="toolbar-menu" ref={formatRef}>
-          <button
-            class="toolbar-menu-btn"
-            classList={{ active: openMenu() === "format" }}
-            onClick={() => toggle("format")}
-          >
-            Format
-          </button>
-          <Show when={openMenu() === "format"}>
-            <div class="toolbar-dropdown">
-
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strong"))}>
-                <span class="toolbar-item-label fmt-bold">Bold</span>
-                <span class="toolbar-item-hint">**text**</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("em"))}>
-                <span class="toolbar-item-label fmt-italic">Italic</span>
-                <span class="toolbar-item-hint">*text*</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strikethrough"))}>
-                <span class="toolbar-item-label fmt-strike">Strikethrough</span>
-                <span class="toolbar-item-hint">~~text~~</span>
-              </button>
-
-              <div class="toolbar-divider" />
-
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(1))}>
-                <span class="toolbar-item-label">Heading 1</span>
-                <span class="toolbar-item-hint">#</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(2))}>
-                <span class="toolbar-item-label">Heading 2</span>
-                <span class="toolbar-item-hint">##</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(3))}>
-                <span class="toolbar-item-label">Heading 3</span>
-                <span class="toolbar-item-hint">###</span>
-              </button>
-
-              <div class="toolbar-divider" />
-
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBulletList)}>
-                <span class="toolbar-item-label">Bullets</span>
-                <span class="toolbar-item-hint">-</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyOrderedList)}>
-                <span class="toolbar-item-label">List</span>
-                <span class="toolbar-item-hint">1.</span>
-              </button>
-
-              <div class="toolbar-divider" />
-
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBlockquote)}>
-                <span class="toolbar-item-label">Quote</span>
-                <span class="toolbar-item-hint">&gt;</span>
-              </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyInlineCode)}>
-                <span class="toolbar-item-label">Code</span>
-                <span class="toolbar-item-hint">`</span>
-              </button>
-
-            </div>
-          </Show>
-        </div>
         </Show>
 
       </div>
