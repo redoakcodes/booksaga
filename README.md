@@ -14,3 +14,17 @@ Booksaga uses standard markdown with the addition of:
 
 Running in dev:
 `npm run tauri dev`
+
+## Testing
+
+JavaScript tests (unit):
+```
+npm test
+```
+
+Rust tests (unit + integration):
+```
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+The Rust suite includes unit tests for the git history layer (`src-tauri/src/git.rs`) and integration tests covering the import flow scenarios (`src-tauri/tests/import_flow.rs`). Cargo discovers and runs both automatically.
