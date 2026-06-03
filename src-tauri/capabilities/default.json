@@ -13,6 +13,13 @@
     "fs:allow-exists",
     "fs:allow-remove",
     "fs:scope-home-recursive",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$HOME/**/.*" },
+        { "path": "$HOME/**/.*/**" }
+      ]
+    },
     "dialog:default",
     "dialog:allow-open"
   ]
