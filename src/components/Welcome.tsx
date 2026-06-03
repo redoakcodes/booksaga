@@ -11,7 +11,6 @@ import {
 } from "../lib/fs";
 import type { IFileSystem } from "../lib/filesystem";
 import { loadProject, initProject } from "../lib/project";
-import { gitInit } from "../lib/git";
 import { store } from "../store";
 
 async function openWith(
@@ -66,6 +65,7 @@ const TauriWelcome: Component = () => {
       <div class="welcome-actions">
         <button class="btn-primary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
+          const { gitInit } = await import("../lib/git");
           await gitInit(fs.rootPath);
           store.setProject(await loadProject(fs));
         })}>
@@ -73,6 +73,7 @@ const TauriWelcome: Component = () => {
         </button>
         <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
+          const { gitInit } = await import("../lib/git");
           await gitInit(fs.rootPath);
           await initProject(fs, "My Book", "");
           store.setProject(await loadProject(fs));
@@ -81,6 +82,7 @@ const TauriWelcome: Component = () => {
         </button>
         <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
+          const { gitInit } = await import("../lib/git");
           await gitInit(fs.rootPath);
           const hasConfig = await fs.readFile(".booksaga", "config.json") !== null;
           if (!hasConfig) await initProject(fs, "My Book", "");
