@@ -216,3 +216,183 @@ fn update_head(
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use gix::bstr::ByteSlice;
+    use std::fs;
+
+    fn open(root: &str) -> gix::Repository {
+        gix::open(history_dir(root)).expect("open repo")
+    }
+
+    fn head_entries(repo: &gix::Repository) -> Vec<gix::objs::tree::Entry> {
+        let commit = repo.head_commit().expect("head commit");
+        let tree_id = commit.tree_id().expect("tree id").detach();
+        let obj = repo.find_object(tree_id).expect("find tree");
+        let tree = gix::objs::TreeRef::from_bytes(&obj.data, repo.object_hash())
+            .expect("parse tree");
+        tree.entries
+            .iter()
+            .map(|e| gix::objs::tree::Entry {
+                mode: e.mode,
+                filename: e.filename.to_owned(),
+                oid: e.oid.to_owned(),
+            })
+            .collect()
+    }
+
+    fn blob_content(repo: &gix::Repository, oid: gix::ObjectId) -> Vec<u8> {
+        repo.find_object(oid).expect("find blob").data.clone()
+    }
+
+    // -- init ----------------------------------------------------------------
+
+    #[test]
+    fn init_creates_history_structure() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        let base = dir.path().join(".booksaga/history");
+        assert!(base.join("HEAD").exists());
+        assert!(base.join("objects").exists());
+        assert!(base.join("refs/heads").exists());
+        assert_eq!(
+            fs::read_to_string(base.join("HEAD")).unwrap(),
+            "ref: refs/heads/main\n"
+        );
+    }
+
+    #[test]
+    fn init_is_idempotent() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        init(root).unwrap();
+    }
+
+    // -- commit_file ---------------------------------------------------------
+
+    #[test]
+    fn commit_file_flat_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::write(dir.path().join("note.md"), b"# Hello\n").unwrap();
+        commit_file(root, "note.md", "save: note").unwrap();
+
+        let repo = open(root);
+        let entries = head_entries(&repo);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].filename.as_bstr(), "note.md");
+        assert_eq!(blob_content(&repo, entries[0].oid), b"# Hello\n");
+    }
+
+    #[test]
+    fn commit_file_nested_path_creates_subtree() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::create_dir_all(dir.path().join("manuscript")).unwrap();
+        fs::write(dir.path().join("manuscript/chapter1.md"), b"# Ch 1\n").unwrap();
+        commit_file(root, "manuscript/chapter1.md", "save: chapter1").unwrap();
+
+        let repo = open(root);
+        let entries = head_entries(&repo);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].filename.as_bstr(), "manuscript");
+        assert_eq!(entries[0].mode.kind(), gix::objs::tree::EntryKind::Tree);
+
+        let sub_obj = repo.find_object(entries[0].oid).unwrap();
+        let sub = gix::objs::TreeRef::from_bytes(&sub_obj.data, repo.object_hash()).unwrap();
+        assert_eq!(sub.entries.len(), 1);
+        assert_eq!(sub.entries[0].filename, "chapter1.md");
+    }
+
+    #[test]
+    fn second_commit_accumulates_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::write(dir.path().join("a.md"), b"A").unwrap();
+        commit_file(root, "a.md", "save: a").unwrap();
+        fs::write(dir.path().join("b.md"), b"B").unwrap();
+        commit_file(root, "b.md", "save: b").unwrap();
+
+        let repo = open(root);
+        let entries = head_entries(&repo);
+        let names: Vec<&[u8]> = entries.iter().map(|e| e.filename.as_ref()).collect();
+        assert!(names.contains(&b"a.md".as_slice()));
+        assert!(names.contains(&b"b.md".as_slice()));
+    }
+
+    #[test]
+    fn commit_file_updates_existing_content() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::write(dir.path().join("note.md"), b"v1").unwrap();
+        commit_file(root, "note.md", "save: v1").unwrap();
+        fs::write(dir.path().join("note.md"), b"v2").unwrap();
+        commit_file(root, "note.md", "save: v2").unwrap();
+
+        let repo = open(root);
+        let entries = head_entries(&repo);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(blob_content(&repo, entries[0].oid), b"v2");
+    }
+
+    #[test]
+    fn second_commit_has_parent() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::write(dir.path().join("a.md"), b"A").unwrap();
+        commit_file(root, "a.md", "first").unwrap();
+        let first_id = open(root).head_commit().unwrap().id;
+
+        fs::write(dir.path().join("b.md"), b"B").unwrap();
+        commit_file(root, "b.md", "second").unwrap();
+
+        // The raw commit object lists parents as "parent <hex>\n" lines.
+        let repo = open(root);
+        let commit = repo.head_commit().unwrap();
+        let obj = repo.find_object(commit.id).unwrap();
+        let raw = std::str::from_utf8(&obj.data).unwrap();
+        let parent_lines: Vec<&str> =
+            raw.lines().filter(|l| l.starts_with("parent ")).collect();
+        assert_eq!(parent_lines.len(), 1);
+        assert!(parent_lines[0].contains(&first_id.to_hex().to_string()));
+    }
+
+    #[test]
+    fn deeply_nested_path() {
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        init(root).unwrap();
+        fs::create_dir_all(dir.path().join("wiki/characters")).unwrap();
+        fs::write(dir.path().join("wiki/characters/elara.md"), b"# Elara\n").unwrap();
+        commit_file(root, "wiki/characters/elara.md", "save: elara").unwrap();
+
+        let repo = open(root);
+        // Root → wiki (tree) → characters (tree) → elara.md (blob)
+        let root_entries = head_entries(&repo);
+        assert_eq!(root_entries.len(), 1);
+        assert_eq!(root_entries[0].filename.as_bstr(), "wiki");
+
+        let wiki_obj = repo.find_object(root_entries[0].oid).unwrap();
+        let wiki = gix::objs::TreeRef::from_bytes(&wiki_obj.data, repo.object_hash()).unwrap();
+        assert_eq!(wiki.entries.len(), 1);
+        assert_eq!(wiki.entries[0].filename, "characters");
+
+        let chars_obj = repo.find_object(wiki.entries[0].oid.to_owned()).unwrap();
+        let chars = gix::objs::TreeRef::from_bytes(&chars_obj.data, repo.object_hash()).unwrap();
+        assert_eq!(chars.entries.len(), 1);
+        assert_eq!(chars.entries[0].filename, "elara.md");
+    }
+}
