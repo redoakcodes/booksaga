@@ -1,4 +1,4 @@
-mod git;
+pub mod git;
 
 #[tauri::command]
 fn git_init(root_path: String) -> Result<(), String> {
