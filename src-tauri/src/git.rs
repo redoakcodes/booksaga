@@ -2,22 +2,23 @@ use smallvec::SmallVec;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+fn history_dir(root: &str) -> std::path::PathBuf {
+    Path::new(root).join(".booksaga").join("history")
+}
+
 pub fn init(root: &str) -> Result<(), String> {
-    let git_dir = Path::new(root).join(".git");
-    if git_dir.exists() {
+    let dir = history_dir(root);
+    if dir.exists() {
         return Ok(());
     }
-    // Manually scaffold the minimal .git layout that gix::open needs.
-    // Using gix::init would also call gix::open internally, which requires
-    // config-parsing features we intentionally omit.
-    std::fs::create_dir_all(git_dir.join("objects")).map_err(|e| e.to_string())?;
-    std::fs::create_dir_all(git_dir.join("refs").join("heads")).map_err(|e| e.to_string())?;
-    std::fs::write(git_dir.join("HEAD"), b"ref: refs/heads/main\n").map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(dir.join("objects")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(dir.join("refs").join("heads")).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("HEAD"), b"ref: refs/heads/main\n").map_err(|e| e.to_string())?;
     Ok(())
 }
 
 pub fn commit_file(root: &str, rel_path: &str, message: &str) -> Result<(), String> {
-    let repo = gix::open(root).map_err(|e| e.to_string())?;
+    let repo = gix::open(history_dir(root)).map_err(|e| e.to_string())?;
 
     // Read the file that was just written to disk
     let content = std::fs::read(Path::new(root).join(rel_path))
