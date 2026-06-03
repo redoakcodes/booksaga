@@ -54,7 +54,10 @@ const TauriWelcome: Component = () => {
       await action();
     } catch (e: unknown) {
       const err = e as { name?: string; message?: string };
-      if (err?.name !== "AbortError") setError(err?.message ?? "Failed");
+      if (err?.name !== "AbortError") {
+        // Tauri command failures reject with a plain string, not an Error object
+        setError(typeof e === "string" ? e : (err?.message ?? "Unknown error"));
+      }
     } finally {
       setLoading(false);
     }
@@ -65,16 +68,14 @@ const TauriWelcome: Component = () => {
       <div class="welcome-actions">
         <button class="btn-primary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
-          const { gitInit } = await import("../lib/git");
-          await gitInit(fs.rootPath);
+          await import("../lib/git").then(({ gitInit }) => gitInit(fs.rootPath)).catch(() => {});
           store.setProject(await loadProject(fs));
         })}>
           {loading() ? "Opening…" : "Open Project"}
         </button>
         <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
-          const { gitInit } = await import("../lib/git");
-          await gitInit(fs.rootPath);
+          await import("../lib/git").then(({ gitInit }) => gitInit(fs.rootPath)).catch(() => {});
           await initProject(fs, "My Book", "");
           store.setProject(await loadProject(fs));
         })}>
@@ -82,8 +83,7 @@ const TauriWelcome: Component = () => {
         </button>
         <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
           const fs = await pickFs();
-          const { gitInit } = await import("../lib/git");
-          await gitInit(fs.rootPath);
+          await import("../lib/git").then(({ gitInit }) => gitInit(fs.rootPath)).catch(() => {});
           const hasConfig = await fs.readFile(".booksaga", "config.json") !== null;
           if (!hasConfig) await initProject(fs, "My Book", "");
           store.setProject(await loadProject(fs));

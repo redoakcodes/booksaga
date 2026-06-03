@@ -3,11 +3,16 @@ use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn init(root: &str) -> Result<(), String> {
-    let path = Path::new(root);
-    if path.join(".git").exists() {
+    let git_dir = Path::new(root).join(".git");
+    if git_dir.exists() {
         return Ok(());
     }
-    gix::init(path).map_err(|e| e.to_string())?;
+    // Manually scaffold the minimal .git layout that gix::open needs.
+    // Using gix::init would also call gix::open internally, which requires
+    // config-parsing features we intentionally omit.
+    std::fs::create_dir_all(git_dir.join("objects")).map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(git_dir.join("refs").join("heads")).map_err(|e| e.to_string())?;
+    std::fs::write(git_dir.join("HEAD"), b"ref: refs/heads/main\n").map_err(|e| e.to_string())?;
     Ok(())
 }
 
