@@ -80,7 +80,9 @@ export async function initProject(
     [".booksaga", "config.json"],
     JSON.stringify({ project: { title, author }, llm: { model: "claude-opus-4-7" } }, null, 2) + "\n",
   );
-  await fs.writeFile([MANUSCRIPT_DIR, "toc.md"], TOC_TEMPLATE);
+  if (await fs.readFile(MANUSCRIPT_DIR, "toc.md") === null) {
+    await fs.writeFile([MANUSCRIPT_DIR, "toc.md"], TOC_TEMPLATE);
+  }
   return loadProject(fs);
 }
 

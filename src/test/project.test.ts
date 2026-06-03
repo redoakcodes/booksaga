@@ -402,4 +402,12 @@ describe("initProject", () => {
     const toc = fs.files.get(`${MANUSCRIPT_DIR}/toc.md`);
     expect(toc).toBe(TOC_TEMPLATE);
   });
+
+  it("does not overwrite an existing toc.md", async () => {
+    const fs = new MockFileSystem();
+    const existingToc = "# Table of Contents\n1. chapter-one.md\n";
+    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, existingToc);
+    await initProject(fs, "My Book", "");
+    expect(fs.files.get(`${MANUSCRIPT_DIR}/toc.md`)).toBe(existingToc);
+  });
 });
