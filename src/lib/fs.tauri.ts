@@ -4,12 +4,13 @@ import { readTextFile, writeTextFile, readDir, mkdir, remove } from "@tauri-apps
 import { open } from "@tauri-apps/plugin-dialog";
 import { join } from "@tauri-apps/api/path";
 import type { IFileSystem } from "./filesystem";
+import { gitCommitFile } from "./git";
 
 export class TauriFileSystem implements IFileSystem {
   readonly mode = "tauri" as const;
   readonly name: string;
 
-  private readonly rootPath: string;
+  readonly rootPath: string;
 
   constructor(rootPath: string) {
     this.rootPath = rootPath;
@@ -33,6 +34,10 @@ export class TauriFileSystem implements IFileSystem {
     }
     const filePath = await join(this.rootPath, ...pathParts);
     await writeTextFile(filePath, content);
+
+    const relPath = pathParts.join("/");
+    const label = (pathParts.at(-1) ?? "").replace(/\.(md|mmd)$/, "").replace(/[-_]/g, " ");
+    await gitCommitFile(this.rootPath, relPath, `save: ${label}`).catch(() => {});
   }
 
   async deleteFile(pathParts: string[]): Promise<void> {

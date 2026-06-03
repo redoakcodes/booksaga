@@ -25,3 +25,5 @@ tauri = { version = "2.11.0", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-fs = "2"
 tauri-plugin-dialog = "2"
+gix = { version = "0.84", default-features = false, features = ["revision", "sha1"] }
+smallvec = "1"

@@ -11,6 +11,7 @@ import {
 } from "../lib/fs";
 import type { IFileSystem } from "../lib/filesystem";
 import { loadProject, initProject } from "../lib/project";
+import { gitInit } from "../lib/git";
 import { store } from "../store";
 
 async function openWith(
@@ -40,30 +41,52 @@ const TauriWelcome: Component = () => {
   const [error, setError] = createSignal("");
   const [loading, setLoading] = createSignal(false);
 
-  async function makeTauriFs(forNew?: string) {
-    const { pickTauriDirectory, TauriFileSystem } = await import("../lib/fs.tauri");
-    if (forNew) return new TauriFileSystem(forNew);
+  async function pickFs() {
+    const { pickTauriDirectory } = await import("../lib/fs.tauri");
     const fs = await pickTauriDirectory();
     if (!fs) throw Object.assign(new Error("Cancelled"), { name: "AbortError" });
     return fs;
   }
 
+  async function run(action: () => Promise<void>) {
+    setError("");
+    setLoading(true);
+    try {
+      await action();
+    } catch (e: unknown) {
+      const err = e as { name?: string; message?: string };
+      if (err?.name !== "AbortError") setError(err?.message ?? "Failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <>
       <div class="welcome-actions">
-        <button class="btn-primary" disabled={loading()} onClick={() =>
-          openWith(() => makeTauriFs(), setError, setLoading)
-        }>
+        <button class="btn-primary" disabled={loading()} onClick={() => run(async () => {
+          const fs = await pickFs();
+          await gitInit(fs.rootPath);
+          store.setProject(await loadProject(fs));
+        })}>
           {loading() ? "Opening…" : "Open Project"}
         </button>
-        <button class="btn-secondary" disabled={loading()} onClick={() =>
-          openWith(async () => {
-            const fs = await makeTauriFs();
-            await initProject(fs, "My Book", "");
-            return fs;
-          }, setError, setLoading)
-        }>
+        <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
+          const fs = await pickFs();
+          await gitInit(fs.rootPath);
+          await initProject(fs, "My Book", "");
+          store.setProject(await loadProject(fs));
+        })}>
           New Project
+        </button>
+        <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
+          const fs = await pickFs();
+          await gitInit(fs.rootPath);
+          const hasConfig = await fs.readFile(".booksaga", "config.json") !== null;
+          if (!hasConfig) await initProject(fs, "My Book", "");
+          store.setProject(await loadProject(fs));
+        })}>
+          Import
         </button>
       </div>
       {error() && <p class="welcome-error">{error()}</p>}
