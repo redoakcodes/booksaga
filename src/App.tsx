@@ -409,6 +409,13 @@ const App: Component = () => {
           open={sagaOpen()}
           onToggle={handleToggleSaga}
           aiConfig={aiConfig()}
+          model={store.project() ?? null}
+          currentFile={(() => {
+            const f = store.openFile();
+            if (!f) return null;
+            const dir = f.section === "manuscript" ? "manuscript" : f.section === "wiki" ? "wiki" : "exercises";
+            return `${dir}/${f.filename}`;
+          })()}
         />
         <StatusBar />
         <Show when={wikiNewOpen()}>

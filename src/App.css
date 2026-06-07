@@ -1468,3 +1468,73 @@ html, body, #root {
 
 .saga-input::placeholder { color: var(--text-muted); opacity: 0.7; }
 .saga-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Tool call / result rows */
+.saga-tool-call {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  padding: 0.2em 0.6em;
+  font-size: 0.8em;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+}
+.saga-tool-icon { color: var(--accent); }
+.saga-tool-name { color: var(--text); font-weight: 600; }
+.saga-tool-args { opacity: 0.7; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.saga-tool-result {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4em;
+  padding: 0.1em 0.6em 0.3em 1.8em;
+  font-size: 0.78em;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+}
+.saga-tool-result--error { color: var(--error, #e06c75); }
+.saga-tool-result-arrow { opacity: 0.5; }
+.saga-tool-result-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Markdown in saga messages */
+.saga-message-text--md p { margin: 0 0 0.5em; }
+.saga-message-text--md p:last-child { margin-bottom: 0; }
+.saga-message-text--md code {
+  background: var(--bg-raised, rgba(255,255,255,0.07));
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.9em;
+}
+.saga-message-text--md pre {
+  background: var(--bg-raised, rgba(255,255,255,0.07));
+  padding: 0.5em 0.75em;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 0.4em 0;
+}
+.saga-message-text--md ul,
+.saga-message-text--md ol { padding-left: 1.4em; margin: 0.3em 0; }
+.saga-message-text--md li { margin: 0.1em 0; }
+.saga-message-text--md strong { color: var(--text); }
+.saga-message-text--md h1,
+.saga-message-text--md h2,
+.saga-message-text--md h3 { margin: 0.5em 0 0.25em; font-size: 1em; font-weight: 700; }
+
+/* Write-tool confirmation banner */
+.saga-confirm {
+  border-top: 1px solid var(--accent);
+  background: var(--bg-raised, rgba(255,255,255,0.04));
+  padding: 0.6em 0.8em;
+  font-size: 0.85em;
+}
+.saga-confirm-label { margin: 0 0 0.3em; }
+.saga-confirm-args {
+  margin: 0 0 0.5em;
+  font-size: 0.85em;
+  font-family: var(--font-mono, monospace);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.saga-confirm-actions { display: flex; gap: 0.5em; justify-content: flex-end; }
