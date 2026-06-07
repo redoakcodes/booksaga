@@ -1,10 +1,13 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import type { PromptEntry, AiConfig } from "../lib/ai";
 import { streamExercise } from "../lib/ai";
+import type { ProjectModel } from "../lib/project";
+import { buildExerciseContext } from "../lib/project";
 
 interface Props {
   prompts: PromptEntry[];
   aiConfig: AiConfig;
+  model: ProjectModel | null;
   onCreate: (exerciseText: string) => void;
   onCancel: () => void;
 }
@@ -24,7 +27,8 @@ const ExerciseNewModal: Component<Props> = (props) => {
     setError(null);
     setGenState("generating");
     try {
-      for await (const chunk of streamExercise(entry.prompt, props.aiConfig)) {
+      const context = props.model ? await buildExerciseContext(props.model) : undefined;
+      for await (const chunk of streamExercise(entry.prompt, props.aiConfig, context)) {
         setResult((r) => r + chunk);
       }
       setGenState("done");

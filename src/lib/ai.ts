@@ -17,6 +17,7 @@ export interface AiConfig {
 export async function* streamExercise(
   prompt: string,
   config: AiConfig,
+  context?: string,
 ): AsyncGenerator<string> {
   if (!config.anthropicApiKey) {
     throw new Error(
@@ -29,10 +30,14 @@ export async function* streamExercise(
     dangerouslyAllowBrowser: true,
   });
 
+  const content = context
+    ? `${prompt}\n\nProject context (tailor the exercise to this specific project's characters, themes, and world):\n${context}`
+    : prompt;
+
   const stream = client.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 1024,
-    messages: [{ role: "user", content: prompt }],
+    messages: [{ role: "user", content }],
   });
 
   for await (const event of stream) {

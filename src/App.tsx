@@ -423,6 +423,7 @@ const App: Component = () => {
           <ExerciseNewModal
             prompts={prompts}
             aiConfig={aiConfig()}
+            model={store.project() ?? null}
             onCreate={handleCreateExercise}
             onCancel={() => setExerciseNewOpen(false)}
           />

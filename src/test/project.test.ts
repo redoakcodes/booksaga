@@ -5,6 +5,7 @@ import {
   renameWikiFile, extractH1, wikiFilenameForTitle,
   promoteOutlineEntry, createExerciseFile,
   createMindmapFile, createTimelineFile,
+  buildExerciseContext,
   MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR,
 } from "../lib/project";
 import { TOC_TEMPLATE } from "../lib/toc";
@@ -409,5 +410,62 @@ describe("initProject", () => {
     fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, existingToc);
     await initProject(fs, "My Book", "");
     expect(fs.files.get(`${MANUSCRIPT_DIR}/toc.md`)).toBe(existingToc);
+  });
+});
+
+describe("buildExerciseContext", () => {
+  it("includes project title and author", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "The Novel", author: "Brent" } }));
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model);
+    expect(ctx).toContain("The Novel");
+    expect(ctx).toContain("Brent");
+  });
+
+  it("omits author line when author is empty", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "Untitled", author: "" } }));
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model);
+    expect(ctx).not.toContain("Author:");
+  });
+
+  it("includes an excerpt from one of the chapters", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# TOC\n1. chapter-one.md\n");
+    fs.files.set(`${MANUSCRIPT_DIR}/chapter-one.md`, "# Chapter One\n\nOnce upon a time.");
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model);
+    expect(ctx).toContain("Once upon a time.");
+  });
+
+  it("truncates long chapter excerpts to maxChars", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# TOC\n1. ch.md\n");
+    fs.files.set(`${MANUSCRIPT_DIR}/ch.md`, "Z".repeat(3000));
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model, 100);
+    expect(ctx).toContain("Z".repeat(100));
+    expect(ctx).not.toContain("Z".repeat(101));
+  });
+
+  it("lists wiki page names when present", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(`${WIKI_DIR}/elara.md`, "# Elara");
+    fs.files.set(`${WIKI_DIR}/city-of-light.md`, "# City of Light");
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model);
+    expect(ctx).toContain("elara");
+    expect(ctx).toContain("city-of-light");
+  });
+
+  it("produces a non-empty context with no chapters or wiki", async () => {
+    const fs = new MockFileSystem();
+    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "Empty Project", author: "" } }));
+    const model = await loadProject(fs);
+    const ctx = await buildExerciseContext(model);
+    expect(ctx.length).toBeGreaterThan(0);
+    expect(ctx).toContain("Empty Project");
   });
 });

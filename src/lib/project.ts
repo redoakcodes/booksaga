@@ -261,6 +261,24 @@ export async function createMindmapFile(
   return filename;
 }
 
+/** Build a context string for AI prompts from the current project state. */
+export async function buildExerciseContext(model: ProjectModel, maxChars = 1500): Promise<string> {
+  const lines: string[] = [`Project: ${model.config.project.title}`];
+  if (model.config.project.author) {
+    lines.push(`Author: ${model.config.project.author}`);
+  }
+  if (model.chapters.length > 0) {
+    const pick = model.chapters[Math.floor(Math.random() * model.chapters.length)];
+    const text = await model.fs.readFile(MANUSCRIPT_DIR, pick);
+    if (text) lines.push(`\nExcerpt from ${pick}:\n${text.slice(0, maxChars)}`);
+  }
+  if (model.wikiFiles.length > 0) {
+    const names = model.wikiFiles.slice(0, 15).map((f) => f.replace(/\.md$/, "").replace(/\//g, " › "));
+    lines.push(`\nWiki pages: ${names.join(", ")}`);
+  }
+  return lines.join("\n");
+}
+
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {
   if (section === "manuscript") return MANUSCRIPT_DIR;
   if (section === "wiki") return WIKI_DIR;
