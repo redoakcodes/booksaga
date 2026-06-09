@@ -25,6 +25,8 @@ const SettingsModal: Component<Props> = (props) => {
       <div class="modal-box" onClick={(e) => e.stopPropagation()}>
         <h2 class="modal-title">Booksaga Settings</h2>
 
+        <h3 class="settings-section-header">General</h3>
+
         <div class="new-modal-field">
           <label class="new-modal-label" for="settings-theme">Theme</label>
           <select
@@ -43,6 +45,9 @@ const SettingsModal: Component<Props> = (props) => {
             <option value="horror">Horror</option>
           </select>
         </div>
+
+        <hr class="settings-divider" />
+        <h3 class="settings-section-header">AI Integrations</h3>
 
         <div class="new-modal-field">
           <label class="new-modal-label" for="settings-api-key">
