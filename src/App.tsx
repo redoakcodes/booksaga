@@ -287,7 +287,10 @@ const App: Component = () => {
     setSettingsOpen(false);
   }
 
-  const aiConfig = (): AiConfig => ({ anthropicApiKey: appSettings().anthropicApiKey });
+  const aiConfig = (): AiConfig => ({
+    anthropicApiKey: appSettings().anthropicApiKey,
+    braveApiKey: appSettings().braveApiKey,
+  });
 
   function handleToggleSaga() {
     const wasOpen = sagaOpen();

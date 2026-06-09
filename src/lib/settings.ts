@@ -13,6 +13,7 @@ export type Theme =
 export interface AppSettings {
   theme: Theme;
   anthropicApiKey?: string;
+  braveApiKey?: string;
 }
 
 const SETTINGS_FILE = "booksaga.json";
@@ -30,6 +31,7 @@ export async function loadSettings(fs: IFileSystem): Promise<AppSettings> {
     return {
       theme: VALID_THEMES.has(parsed.theme) ? (parsed.theme as Theme) : "dark",
       anthropicApiKey: typeof parsed.anthropicApiKey === "string" ? parsed.anthropicApiKey : undefined,
+      braveApiKey: typeof parsed.braveApiKey === "string" ? parsed.braveApiKey : undefined,
     };
   } catch {
     return { ...DEFAULTS };

@@ -10,11 +10,13 @@ interface Props {
 const SettingsModal: Component<Props> = (props) => {
   const [theme, setTheme] = createSignal<Theme>(props.settings.theme);
   const [apiKey, setApiKey] = createSignal(props.settings.anthropicApiKey ?? "");
+  const [braveKey, setBraveKey] = createSignal(props.settings.braveApiKey ?? "");
 
   function save() {
     props.onSave({
       theme: theme(),
       anthropicApiKey: apiKey().trim() || undefined,
+      braveApiKey: braveKey().trim() || undefined,
     });
   }
 
@@ -53,6 +55,21 @@ const SettingsModal: Component<Props> = (props) => {
             placeholder="sk-ant-…"
             value={apiKey()}
             onInput={(e) => setApiKey(e.currentTarget.value)}
+            autocomplete="off"
+          />
+        </div>
+
+        <div class="new-modal-field">
+          <label class="new-modal-label" for="settings-brave-key">
+            Brave Search API Key
+          </label>
+          <input
+            id="settings-brave-key"
+            type="password"
+            class="new-modal-input"
+            placeholder="BSA…"
+            value={braveKey()}
+            onInput={(e) => setBraveKey(e.currentTarget.value)}
             autocomplete="off"
           />
         </div>

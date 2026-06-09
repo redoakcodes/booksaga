@@ -8,6 +8,7 @@ export interface PromptEntry {
 /** Provider credentials. Extend here when adding Ollama or other backends. */
 export interface AiConfig {
   anthropicApiKey?: string;
+  braveApiKey?: string;
 }
 
 /**
