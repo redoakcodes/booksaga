@@ -30,7 +30,6 @@ cargo test --manifest-path src-tauri/Cargo.toml
 The Rust suite includes unit tests for the git history layer (`src-tauri/src/git.rs`) and integration tests covering the import flow scenarios (`src-tauri/tests/import_flow.rs`). Cargo discovers and runs both automatically.
 
 # Roadmap Bag
-1. Add images
-2. References tracking
-3. Editing workflow
-4. Typesetting?
+1. References tracking
+2. Editing workflow
+3. Typesetting?
