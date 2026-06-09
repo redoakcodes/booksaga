@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { invoke } from "@tauri-apps/api/core";
 import type { AiConfig } from "./ai";
 import type { ProjectModel } from "./project";
 import { MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR } from "./project";
@@ -35,6 +36,19 @@ export type ApiMessage = Anthropic.MessageParam;
 // ---------------------------------------------------------------------------
 
 const WRITE_TOOLS = new Set(["create_wiki_page", "edit_wiki_page"]);
+
+const SEARCH_TOOL: Anthropic.Tool = {
+  name: "web_search",
+  description: "Search the web using Brave Search. Returns titles, URLs, and snippets. Use this to look up facts, research topics, or find reference material for the writer.",
+  input_schema: {
+    type: "object" as const,
+    properties: {
+      query: { type: "string", description: "Search query" },
+      count: { type: "number", description: "Number of results to return (default 5, max 10)" },
+    },
+    required: ["query"],
+  },
+};
 
 const TOOL_DEFINITIONS: Anthropic.Tool[] = [
   {
@@ -210,19 +224,34 @@ async function editWikiPage(
 async function executeTool(
   name: string,
   args: Record<string, unknown>,
-  model: ProjectModel,
+  model: ProjectModel | null,
+  config: AiConfig,
 ): Promise<[string, boolean]> {
   try {
     switch (name) {
+      case "web_search": {
+        if (!config.braveApiKey) return ["No Brave Search API key configured. Add your key in Settings.", true];
+        const result = await invoke<string>("brave_search", {
+          query: args.query as string,
+          count: Math.min((args.count as number) ?? 5, 10),
+          apiKey: config.braveApiKey,
+        });
+        return [result, false];
+      }
       case "list_wiki_pages":
+        if (!model) return ["No project is open.", true];
         return [listWikiPages(model), false];
       case "read_wiki_page":
+        if (!model) return ["No project is open.", true];
         return [await readWikiPage(args.name as string, model), false];
       case "list_exercise_files":
+        if (!model) return ["No project is open.", true];
         return [listExerciseFiles(model), false];
       case "read_exercise_file":
+        if (!model) return ["No project is open.", true];
         return [await readExerciseFile(args.name as string, model), false];
       case "read_manuscript_excerpt":
+        if (!model) return ["No project is open.", true];
         return [await readManuscriptExcerpt(
           args.chapter as string,
           (args.start_line as number) ?? 1,
@@ -230,6 +259,7 @@ async function executeTool(
           model,
         ), false];
       case "create_wiki_page":
+        if (!model) return ["No project is open.", true];
         return [await createWikiPage(
           args.name as string,
           args.content as string,
@@ -237,6 +267,7 @@ async function executeTool(
           model,
         ), false];
       case "edit_wiki_page":
+        if (!model) return ["No project is open.", true];
         return [await editWikiPage(
           args.name as string,
           args.old_text as string,
@@ -271,7 +302,10 @@ export async function* streamSaga(
   let system = SYSTEM_PROMPT_BASE;
   if (currentFile) system += `\n\nCurrently open file: ${currentFile}`;
 
-  const tools = model ? TOOL_DEFINITIONS : [];
+  const tools: Anthropic.Tool[] = [
+    ...(model ? TOOL_DEFINITIONS : []),
+    ...(config.braveApiKey ? [SEARCH_TOOL] : []),
+  ];
 
   while (true) {
     const stream = client.messages.stream({
@@ -325,12 +359,10 @@ export async function* streamSaga(
           result = "Cancelled by writer.";
           isError = false;
         } else {
-          [result, isError] = await executeTool(tool.name, args, model!);
+          [result, isError] = await executeTool(tool.name, args, model, config);
         }
       } else {
-        [result, isError] = model
-          ? await executeTool(tool.name, args, model)
-          : ["No project is open.", true];
+        [result, isError] = await executeTool(tool.name, args, model, config);
       }
 
       yield { type: "tool_result", name: tool.name, result, isError };
