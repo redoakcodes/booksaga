@@ -37,6 +37,9 @@ import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
+import { insertMarkdown } from "./lib/editorCommands";
+import { invoke } from "@tauri-apps/api/core";
+import type { TauriFileSystem } from "./lib/fs.tauri";
 import "./App.css";
 
 function updateWikiTitleMap(
@@ -77,6 +80,31 @@ const App: Component = () => {
       applyTheme(s.theme);
     });
   });
+
+  createEffect(() => {
+    const project = store.project();
+    if (!project || project.fs.mode !== "tauri") return;
+    invoke("set_project_root", { root: (project.fs as TauriFileSystem).rootPath }).catch(() => {});
+  });
+
+  let imageInputRef!: HTMLInputElement;
+
+  async function handleImageFileChange(e: Event) {
+    const input = e.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    const project = store.project();
+    if (!project || project.fs.mode !== "tauri") return;
+    const rootPath = (project.fs as TauriFileSystem).rootPath;
+    const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
+    try {
+      const savedName = await invoke<string>("save_image", { rootPath, filename: file.name, bytes });
+      insertMarkdown(`![](booksaga://localhost/manuscript/art/${savedName})`);
+    } catch (err) {
+      console.error("Failed to save image:", err);
+    }
+  }
 
   async function handleFileSelect(section: Section, filename: string) {
     const project = store.project();
@@ -337,12 +365,20 @@ const App: Component = () => {
             onDeleteWikiEntry={handleWikiDelete}
           />
           <main class="main-panel">
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              style="display:none"
+              onChange={handleImageFileChange}
+            />
             <Toolbar
               onSave={handleSave}
               viewMarkdown={viewMarkdown()}
               onToggleView={() => setViewMarkdown((v) => !v)}
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
+              onInsertImage={() => imageInputRef.click()}
               isDiagram={isDiagram()}
             />
             <Show

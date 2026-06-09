@@ -1,5 +1,17 @@
 pub mod git;
 
+use std::path::Path;
+use std::sync::Mutex;
+use tauri::Manager;
+
+// Shared project root — written on project open, read by the booksaga:// protocol handler.
+pub struct ProjectRoot(pub Mutex<Option<String>>);
+
+#[tauri::command]
+fn set_project_root(root: String, state: tauri::State<ProjectRoot>) {
+    *state.0.lock().unwrap() = Some(root);
+}
+
 #[tauri::command]
 fn git_init(root_path: String) -> Result<(), String> {
     git::init(&root_path)
@@ -8,6 +20,41 @@ fn git_init(root_path: String) -> Result<(), String> {
 #[tauri::command]
 fn git_commit_file(root_path: String, rel_path: String, message: String) -> Result<(), String> {
     git::commit_file(&root_path, &rel_path, &message)
+}
+
+#[tauri::command]
+async fn save_image(root_path: String, filename: String, bytes: Vec<u8>) -> Result<String, String> {
+    let safe_name = Path::new(&filename)
+        .file_name()
+        .map(|n| {
+            n.to_string_lossy()
+                .chars()
+                .map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' })
+                .collect::<String>()
+        })
+        .filter(|n| !n.is_empty())
+        .ok_or("Invalid filename")?;
+
+    let art_dir = Path::new(&root_path).join("manuscript").join("art");
+    std::fs::create_dir_all(&art_dir).map_err(|e| e.to_string())?;
+    std::fs::write(art_dir.join(&safe_name), &bytes).map_err(|e| e.to_string())?;
+
+    let rel_path = format!("manuscript/art/{}", safe_name);
+    git::commit_file(&root_path, &rel_path, &format!("add image: {}", safe_name))?;
+
+    Ok(safe_name)
+}
+
+fn mime_for_ext(ext: &str) -> &'static str {
+    match ext {
+        "jpg" | "jpeg" => "image/jpeg",
+        "png" => "image/png",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "avif" => "image/avif",
+        _ => "application/octet-stream",
+    }
 }
 
 #[tauri::command]
@@ -58,6 +105,35 @@ async fn brave_search(query: String, count: u8, api_key: String) -> Result<Strin
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(ProjectRoot(Mutex::new(None)))
+        .register_uri_scheme_protocol("booksaga", |app, request| {
+            let state = app.app_handle().state::<ProjectRoot>();
+            let guard = state.0.lock().unwrap();
+            let Some(ref root) = *guard else {
+                return tauri::http::Response::builder()
+                    .status(404)
+                    .body(b"no project open".to_vec())
+                    .unwrap();
+            };
+            let url_path = request.uri().path().trim_start_matches('/');
+            let file_path = Path::new(root).join(url_path);
+            match std::fs::read(&file_path) {
+                Ok(bytes) => {
+                    let ext = file_path
+                        .extension()
+                        .and_then(|e| e.to_str())
+                        .unwrap_or("");
+                    tauri::http::Response::builder()
+                        .header("Content-Type", mime_for_ext(ext))
+                        .body(bytes)
+                        .unwrap()
+                }
+                Err(_) => tauri::http::Response::builder()
+                    .status(404)
+                    .body(vec![])
+                    .unwrap(),
+            }
+        })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
@@ -70,7 +146,13 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![git_init, git_commit_file, brave_search])
+        .invoke_handler(tauri::generate_handler![
+            git_init,
+            git_commit_file,
+            brave_search,
+            set_project_root,
+            save_image,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

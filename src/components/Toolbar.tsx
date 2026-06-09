@@ -7,6 +7,7 @@ import {
   applyBlockquote,
   applyInlineCode,
 } from "../lib/editorCommands";
+
 import { modKeyLabel } from "../lib/platform";
 
 interface Props {
@@ -15,20 +16,22 @@ interface Props {
   onToggleView: () => void;
   onNew?: () => void;
   onSettings?: () => void;
+  onInsertImage?: () => void;
   isDiagram?: boolean;
 }
 
-type OpenMenu = "menu" | "format" | null;
+type OpenMenu = "menu" | "format" | "insert" | null;
 
 const Toolbar: Component<Props> = (props) => {
   const [openMenu, setOpenMenu] = createSignal<OpenMenu>(null);
   let menuRef!: HTMLDivElement;
   let formatRef!: HTMLDivElement;
+  let insertRef!: HTMLDivElement;
 
   createEffect(() => {
     const which = openMenu();
     if (!which) return;
-    const ref = which === "menu" ? menuRef : formatRef;
+    const ref = which === "menu" ? menuRef : which === "format" ? formatRef : insertRef;
     const handler = (e: MouseEvent) => {
       if (!ref.contains(e.target as Node)) setOpenMenu(null);
     };
@@ -84,6 +87,26 @@ const Toolbar: Component<Props> = (props) => {
             </div>
           </Show>
         </div>
+
+        {/* ── Insert (text editor only) ── */}
+        <Show when={!props.isDiagram}>
+          <div class="toolbar-menu" ref={insertRef}>
+            <button
+              class="toolbar-menu-btn"
+              classList={{ active: openMenu() === "insert" }}
+              onClick={() => toggle("insert")}
+            >
+              Insert
+            </button>
+            <Show when={openMenu() === "insert"}>
+              <div class="toolbar-dropdown">
+                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertImage?.())}>
+                  <span class="toolbar-item-label">Image</span>
+                </button>
+              </div>
+            </Show>
+          </div>
+        </Show>
 
         {/* ── Format (text editor only) ── */}
         <Show when={!props.isDiagram}>

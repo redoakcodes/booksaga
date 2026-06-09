@@ -95,6 +95,17 @@ export function applyBlockquote() {
 }
 
 // ---------------------------------------------------------------------------
+// Insert arbitrary markdown text at the current cursor position
+// ---------------------------------------------------------------------------
+
+export function insertMarkdown(text: string) {
+  withView((view) => {
+    const { state, dispatch } = view;
+    dispatch(state.tr.insertText(text));
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Inline code — wraps selection, or inserts `` with cursor between
 // ---------------------------------------------------------------------------
 
