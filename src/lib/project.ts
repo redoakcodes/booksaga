@@ -1,5 +1,6 @@
+import { invoke } from "@tauri-apps/api/core";
 import type { IFileSystem } from "./filesystem";
-import { loadConfig, type Config } from "./config";
+import { loadConfig, parseConfig, type Config } from "./config";
 import { TocParser, TOC_TEMPLATE, titleToFilename } from "./toc";
 import { buildWikiIndex, replaceWikiLinks, type WikiIndex } from "./wikiIndex";
 
@@ -20,7 +21,54 @@ export interface ProjectModel {
   wikiTitleMap: Map<string, string>; // original H1 title → wiki filename
 }
 
+interface ScannedProject {
+  configJson: string | null;
+  tocText: string | null;
+  chapters: string[];
+  wikiFiles: string[];
+  wikiDirs: string[];
+  wikiContents: [string, string][];
+  diagramFiles: string[];
+  exerciseFiles: string[];
+}
+
+function assembleProject(fs: IFileSystem, scanned: ScannedProject): ProjectModel {
+  const config = parseConfig(scanned.configJson ?? null);
+  const toc = new TocParser(scanned.tocText ?? TOC_TEMPLATE);
+  const chapters = toc.orderedChapters(scanned.chapters);
+
+  const wikiContents = new Map(scanned.wikiContents);
+  const wikiIndex = buildWikiIndex(wikiContents);
+
+  const wikiTitleMap = new Map<string, string>();
+  for (const [filename, content] of wikiContents) {
+    const h1 = extractH1(content);
+    if (h1) wikiTitleMap.set(h1, filename);
+  }
+
+  return {
+    fs,
+    config,
+    toc,
+    chapters,
+    wikiFiles: scanned.wikiFiles,
+    wikiDirs: scanned.wikiDirs,
+    diagramFiles: scanned.diagramFiles,
+    exerciseFiles: scanned.exerciseFiles,
+    wikiIndex,
+    wikiTitleMap,
+  };
+}
+
 export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
+  // Fast path: single Rust call instead of many IPC hops
+  const rootPath = (fs as { rootPath?: string }).rootPath;
+  if (rootPath) {
+    const scanned = await invoke<ScannedProject>("scan_project", { rootPath });
+    return assembleProject(fs, scanned);
+  }
+
+  // Test path: use IFileSystem methods
   const config = await loadConfig(fs);
 
   const tocText = await fs.readFile(MANUSCRIPT_DIR, "toc.md") ?? TOC_TEMPLATE;

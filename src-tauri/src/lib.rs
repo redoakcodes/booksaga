@@ -5,6 +5,107 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 // ---------------------------------------------------------------------------
+// Project scanning
+// ---------------------------------------------------------------------------
+
+#[derive(serde::Serialize)]
+pub struct ScannedProject {
+    pub config_json: Option<String>,
+    pub toc_text: Option<String>,
+    pub chapters: Vec<String>,
+    pub wiki_files: Vec<String>,
+    pub wiki_dirs: Vec<String>,
+    pub wiki_contents: Vec<(String, String)>,
+    pub diagram_files: Vec<String>,
+    pub exercise_files: Vec<String>,
+}
+
+fn collect_by_ext(dir: &Path, prefix: &str, ext: &str, out: &mut Vec<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let mut names: Vec<_> = entries.flatten().collect();
+    names.sort_by_key(|e| e.file_name());
+    for entry in names {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        let rel = if prefix.is_empty() { name.to_string() } else { format!("{prefix}/{name}") };
+        let path = entry.path();
+        if path.is_file() && name.ends_with(ext) {
+            out.push(rel);
+        } else if path.is_dir() {
+            collect_by_ext(&path, &rel, ext, out);
+        }
+    }
+}
+
+fn collect_subdirs(dir: &Path, prefix: &str, out: &mut Vec<String>) {
+    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let mut names: Vec<_> = entries.flatten().collect();
+    names.sort_by_key(|e| e.file_name());
+    for entry in names {
+        if !entry.path().is_dir() { continue; }
+        let name = entry.file_name();
+        let rel = if prefix.is_empty() {
+            name.to_string_lossy().to_string()
+        } else {
+            format!("{prefix}/{}", name.to_string_lossy())
+        };
+        out.push(rel.clone());
+        collect_subdirs(&entry.path(), &rel, out);
+    }
+}
+
+pub fn scan_project_impl(root_path: &str) -> Result<ScannedProject, String> {
+    let root = Path::new(root_path);
+
+    let config_json = std::fs::read_to_string(root.join(".booksaga/config.json")).ok();
+    let toc_text = std::fs::read_to_string(root.join("manuscript/toc.md")).ok();
+
+    let manuscript_dir = root.join("manuscript");
+    let wiki_dir = root.join("wiki");
+    let exercises_dir = root.join("exercises");
+
+    let mut chapters = Vec::new();
+    collect_by_ext(&manuscript_dir, "", ".md", &mut chapters);
+    chapters.retain(|f| f != "toc.md");
+
+    let mut wiki_files = Vec::new();
+    collect_by_ext(&wiki_dir, "", ".md", &mut wiki_files);
+
+    let mut wiki_dirs = Vec::new();
+    collect_subdirs(&wiki_dir, "", &mut wiki_dirs);
+
+    let mut diagram_files = Vec::new();
+    collect_by_ext(&wiki_dir, "", ".mmd", &mut diagram_files);
+
+    let mut exercise_files = Vec::new();
+    collect_by_ext(&exercises_dir, "", ".md", &mut exercise_files);
+
+    let mut wiki_contents = Vec::new();
+    for file in &wiki_files {
+        let path = wiki_dir.join(file);
+        if let Ok(content) = std::fs::read_to_string(&path) {
+            wiki_contents.push((file.clone(), content));
+        }
+    }
+
+    Ok(ScannedProject {
+        config_json,
+        toc_text,
+        chapters,
+        wiki_files,
+        wiki_dirs,
+        wiki_contents,
+        diagram_files,
+        exercise_files,
+    })
+}
+
+#[tauri::command]
+fn scan_project(root_path: String) -> Result<ScannedProject, String> {
+    scan_project_impl(&root_path)
+}
+
+// ---------------------------------------------------------------------------
 // Anthropic streaming
 // ---------------------------------------------------------------------------
 
@@ -336,6 +437,7 @@ pub fn run() {
             set_project_root,
             save_image,
             anthropic_stream,
+            scan_project,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
