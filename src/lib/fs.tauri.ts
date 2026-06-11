@@ -1,15 +1,13 @@
 /** Tauri filesystem backend — native read/write via tauri-plugin-fs. */
 
-import { readTextFile, writeTextFile, readDir, mkdir, remove } from "@tauri-apps/plugin-fs";
+import { readTextFile, writeTextFile, mkdir, remove } from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
 import { join } from "@tauri-apps/api/path";
 import type { IFileSystem } from "./filesystem";
 import { gitCommitFile } from "./git";
 
 export class TauriFileSystem implements IFileSystem {
-  readonly mode = "tauri" as const;
   readonly name: string;
-
   readonly rootPath: string;
 
   constructor(rootPath: string) {
@@ -48,74 +46,6 @@ export class TauriFileSystem implements IFileSystem {
   async deleteDir(pathParts: string[]): Promise<void> {
     const dirPath = await join(this.rootPath, ...pathParts);
     await remove(dirPath, { recursive: true });
-  }
-
-  async listMarkdownFiles(subdir: string): Promise<string[]> {
-    const names: string[] = [];
-    const subdirPath = await join(this.rootPath, subdir);
-    try {
-      // Only wrap the top-level readDir call — if the subdir doesn't exist,
-      // return empty. Errors from deeper recursion propagate up.
-      await readDir(subdirPath);
-    } catch {
-      return [];
-    }
-    await collectFilesByExt(subdirPath, "", ".md", names);
-    return names.sort();
-  }
-
-  async listDiagramFiles(subdir: string): Promise<string[]> {
-    const names: string[] = [];
-    const subdirPath = await join(this.rootPath, subdir);
-    try {
-      await readDir(subdirPath);
-    } catch {
-      return [];
-    }
-    await collectFilesByExt(subdirPath, "", ".mmd", names);
-    return names.sort();
-  }
-
-  async listSubdirs(subdir: string): Promise<string[]> {
-    const paths: string[] = [];
-    const subdirPath = await join(this.rootPath, subdir);
-    try {
-      await readDir(subdirPath);
-    } catch {
-      return [];
-    }
-    await collectSubdirs(subdirPath, "", paths);
-    return paths.sort();
-  }
-}
-
-async function collectSubdirs(dirPath: string, prefix: string, out: string[]): Promise<void> {
-  const entries = await readDir(dirPath);
-  for (const entry of entries) {
-    if (!entry.name || !entry.isDirectory) continue;
-    const relativeName = prefix ? `${prefix}/${entry.name}` : entry.name;
-    out.push(relativeName);
-    const childPath = await join(dirPath, entry.name);
-    await collectSubdirs(childPath, relativeName, out);
-  }
-}
-
-async function collectFilesByExt(
-  dirPath: string,
-  prefix: string,
-  ext: string,
-  out: string[],
-): Promise<void> {
-  const entries = await readDir(dirPath);
-  for (const entry of entries) {
-    if (!entry.name) continue;
-    const relativeName = prefix ? `${prefix}/${entry.name}` : entry.name;
-    if (entry.isFile && entry.name.endsWith(ext)) {
-      out.push(relativeName);
-    } else if (entry.isDirectory) {
-      const childPath = await join(dirPath, entry.name);
-      await collectFilesByExt(childPath, relativeName, ext, out);
-    }
   }
 }
 

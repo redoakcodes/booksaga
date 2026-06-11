@@ -60,6 +60,13 @@ function assembleProject(fs: IFileSystem, scanned: ScannedProject): ProjectModel
   };
 }
 
+// Used only by MockFileSystem in tests — not part of the public IFileSystem contract.
+interface ScanCapableFileSystem extends IFileSystem {
+  listMarkdownFiles(subdir: string): Promise<string[]>;
+  listDiagramFiles(subdir: string): Promise<string[]>;
+  listSubdirs(subdir: string): Promise<string[]>;
+}
+
 export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   // Fast path: single Rust call instead of many IPC hops
   const rootPath = (fs as { rootPath?: string }).rootPath;
@@ -68,19 +75,20 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
     return assembleProject(fs, scanned);
   }
 
-  // Test path: use IFileSystem methods
+  // Test path: MockFileSystem provides the list methods
+  const scanFs = fs as ScanCapableFileSystem;
   const config = await loadConfig(fs);
 
   const tocText = await fs.readFile(MANUSCRIPT_DIR, "toc.md") ?? TOC_TEMPLATE;
   const toc = new TocParser(tocText);
 
-  const allManuscriptFiles = await fs.listMarkdownFiles(MANUSCRIPT_DIR);
+  const allManuscriptFiles = await scanFs.listMarkdownFiles(MANUSCRIPT_DIR);
   const chapters = toc.orderedChapters(allManuscriptFiles);
 
-  const wikiFiles = await fs.listMarkdownFiles(WIKI_DIR);
-  const wikiDirs = await fs.listSubdirs(WIKI_DIR);
-  const diagramFiles = await fs.listDiagramFiles(WIKI_DIR);
-  const exerciseFiles = await fs.listMarkdownFiles(EXERCISES_DIR);
+  const wikiFiles = await scanFs.listMarkdownFiles(WIKI_DIR);
+  const wikiDirs = await scanFs.listSubdirs(WIKI_DIR);
+  const diagramFiles = await scanFs.listDiagramFiles(WIKI_DIR);
+  const exerciseFiles = await scanFs.listMarkdownFiles(EXERCISES_DIR);
 
   const wikiContents = new Map<string, string>();
   for (const f of wikiFiles) {

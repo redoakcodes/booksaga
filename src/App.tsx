@@ -83,7 +83,7 @@ const App: Component = () => {
 
   createEffect(() => {
     const project = store.project();
-    if (!project || project.fs.mode !== "tauri") return;
+    if (!project) return;
     invoke("set_project_root", { root: (project.fs as TauriFileSystem).rootPath }).catch(() => {});
   });
 
@@ -95,7 +95,7 @@ const App: Component = () => {
     input.value = "";
     if (!file) return;
     const project = store.project();
-    if (!project || project.fs.mode !== "tauri") return;
+    if (!project) return;
     const rootPath = (project.fs as TauriFileSystem).rootPath;
     const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
     try {

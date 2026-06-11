@@ -1,10 +1,8 @@
 import { type Component, Show } from "solid-js";
 import { store } from "../store";
-import { downloadFile } from "../lib/fs";
 
 const StatusBar: Component = () => {
   const file = () => store.openFile();
-  const storageMode = () => store.project()?.fs.mode;
 
   const wordCount = () => {
     const content = file()?.content ?? "";
@@ -31,15 +29,6 @@ const StatusBar: Component = () => {
         </Show>
         <Show when={store.saving()}>
           <span class="status-saving">Saving…</span>
-        </Show>
-        <Show when={storageMode() === "opfs"}>
-          <button
-            class="status-download"
-            onClick={() => downloadFile(file()!.filename, file()!.content)}
-            title="Download this file to disk"
-          >
-            ↓ Download
-          </button>
         </Show>
       </Show>
     </footer>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import type { IFileSystem, StorageMode } from "../lib/filesystem";
+import type { IFileSystem } from "../lib/filesystem";
 import {
   loadProject, readFile, saveFile, initProject,
   renameWikiFile, extractH1, wikiFilenameForTitle,
@@ -16,7 +16,6 @@ import { TOC_TEMPLATE } from "../lib/toc";
 
 class MockFileSystem implements IFileSystem {
   files = new Map<string, string>();
-  readonly mode: StorageMode = "opfs";
   readonly name = "test-project";
 
   async readFile(...pathParts: string[]): Promise<string | null> {
@@ -38,23 +37,28 @@ class MockFileSystem implements IFileSystem {
     }
   }
 
-  async listMarkdownFiles(subdir: string): Promise<string[]> {
+  // Used by the IFileSystem test path in loadProject
+  listMarkdownFiles(subdir: string): Promise<string[]> {
     const prefix = subdir + "/";
-    return [...this.files.keys()]
-      .filter((k) => k.startsWith(prefix) && k.endsWith(".md"))
-      .map((k) => k.slice(prefix.length))
-      .sort();
+    return Promise.resolve(
+      [...this.files.keys()]
+        .filter((k) => k.startsWith(prefix) && k.endsWith(".md"))
+        .map((k) => k.slice(prefix.length))
+        .sort(),
+    );
   }
 
-  async listDiagramFiles(subdir: string): Promise<string[]> {
+  listDiagramFiles(subdir: string): Promise<string[]> {
     const prefix = subdir + "/";
-    return [...this.files.keys()]
-      .filter((k) => k.startsWith(prefix) && k.endsWith(".mmd"))
-      .map((k) => k.slice(prefix.length))
-      .sort();
+    return Promise.resolve(
+      [...this.files.keys()]
+        .filter((k) => k.startsWith(prefix) && k.endsWith(".mmd"))
+        .map((k) => k.slice(prefix.length))
+        .sort(),
+    );
   }
 
-  async listSubdirs(subdir: string): Promise<string[]> {
+  listSubdirs(subdir: string): Promise<string[]> {
     const prefix = subdir + "/";
     const dirs = new Set<string>();
     for (const key of this.files.keys()) {
@@ -64,7 +68,7 @@ class MockFileSystem implements IFileSystem {
         dirs.add(parts.slice(0, i).join("/"));
       }
     }
-    return Array.from(dirs).sort();
+    return Promise.resolve(Array.from(dirs).sort());
   }
 }
 
