@@ -1,5 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { invoke } from "@tauri-apps/api/core";
+import { streamAnthropicRequest, type AnthropicMessage, type ContentBlock } from "./anthropic";
 import type { AiConfig } from "./ai";
 import type { ProjectModel } from "./project";
 import { MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR } from "./project";
@@ -29,19 +29,36 @@ export type AgentEvent =
 
 export type ConfirmCallback = (toolName: string, args: Record<string, unknown>) => Promise<boolean>;
 
-export type ApiMessage = Anthropic.MessageParam;
+type ApiContentBlock =
+  | { type: "text"; text: string }
+  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
+  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
+
+export type ApiMessage =
+  | { role: "user"; content: string | ApiContentBlock[] }
+  | { role: "assistant"; content: string | ApiContentBlock[] };
 
 // ---------------------------------------------------------------------------
 // Tool definitions
 // ---------------------------------------------------------------------------
 
+interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    required?: string[];
+  };
+}
+
 const WRITE_TOOLS = new Set(["create_wiki_page", "edit_wiki_page"]);
 
-const SEARCH_TOOL: Anthropic.Tool = {
+const SEARCH_TOOL: ToolDefinition = {
   name: "web_search",
   description: "Search the web using Brave Search. Returns titles, URLs, and snippets. Use this to look up facts, research topics, or find reference material for the writer.",
   input_schema: {
-    type: "object" as const,
+    type: "object",
     properties: {
       query: { type: "string", description: "Search query" },
       count: { type: "number", description: "Number of results to return (default 5, max 10)" },
@@ -50,36 +67,32 @@ const SEARCH_TOOL: Anthropic.Tool = {
   },
 };
 
-const TOOL_DEFINITIONS: Anthropic.Tool[] = [
+const TOOL_DEFINITIONS: ToolDefinition[] = [
   {
     name: "list_wiki_pages",
     description: "List all wiki pages in the project.",
-    input_schema: { type: "object" as const, properties: {} },
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "read_wiki_page",
     description: "Read the contents of a wiki page by name (fuzzy matched on filename stem).",
     input_schema: {
-      type: "object" as const,
-      properties: {
-        name: { type: "string", description: "Page name or filename stem" },
-      },
+      type: "object",
+      properties: { name: { type: "string", description: "Page name or filename stem" } },
       required: ["name"],
     },
   },
   {
     name: "list_exercise_files",
     description: "List all writing exercise files in the project.",
-    input_schema: { type: "object" as const, properties: {} },
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "read_exercise_file",
     description: "Read a writing exercise file by name (fuzzy matched).",
     input_schema: {
-      type: "object" as const,
-      properties: {
-        name: { type: "string", description: "Exercise filename or stem" },
-      },
+      type: "object",
+      properties: { name: { type: "string", description: "Exercise filename or stem" } },
       required: ["name"],
     },
   },
@@ -87,7 +100,7 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
     name: "read_manuscript_excerpt",
     description: "Read a range of lines from a manuscript chapter (read-only).",
     input_schema: {
-      type: "object" as const,
+      type: "object",
       properties: {
         chapter: { type: "string", description: "Chapter filename or partial name (fuzzy matched)" },
         start_line: { type: "number", description: "First line to read, 1-indexed (default 1)" },
@@ -98,16 +111,13 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
   },
   {
     name: "create_wiki_page",
-    description: "Create a new wiki page. Requires writer confirmation. Use for new characters, locations, or research entries.",
+    description: "Create a new wiki page. Requires writer confirmation.",
     input_schema: {
-      type: "object" as const,
+      type: "object",
       properties: {
         name: { type: "string", description: "Page filename without .md extension" },
         content: { type: "string", description: "Full markdown content for the page" },
-        section: {
-          type: "string",
-          description: "Subfolder within wiki/ — e.g. 'characters', 'locations', 'research'",
-        },
+        section: { type: "string", description: "Subfolder within wiki/ — e.g. 'characters', 'locations'" },
       },
       required: ["name", "content"],
     },
@@ -116,7 +126,7 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
     name: "edit_wiki_page",
     description: "Edit an existing wiki page by replacing specific text. Requires writer confirmation.",
     input_schema: {
-      type: "object" as const,
+      type: "object",
       properties: {
         name: { type: "string", description: "Page name or filename stem (fuzzy matched)" },
         old_text: { type: "string", description: "Exact text to replace" },
@@ -216,7 +226,8 @@ async function editWikiPage(
   if (!match) return `Wiki page '${name}' not found.`;
   const content = await model.fs.readFile(WIKI_DIR, ...match.split("/"));
   if (!content) return `Could not read ${match}.`;
-  if (!content.includes(oldText)) return `Text to replace not found in '${match}'. Check that old_text exactly matches the file content.`;
+  if (!content.includes(oldText))
+    return `Text to replace not found in '${match}'. Check that old_text exactly matches the file content.`;
   await model.fs.writeFile([WIKI_DIR, ...match.split("/")], content.replace(oldText, newText));
   return `Updated ${match}.`;
 }
@@ -230,7 +241,8 @@ async function executeTool(
   try {
     switch (name) {
       case "web_search": {
-        if (!config.braveApiKey) return ["No Brave Search API key configured. Add your key in Settings.", true];
+        if (!config.braveApiKey)
+          return ["No Brave Search API key configured. Add your key in Settings.", true];
         const result = await invoke<string>("brave_search", {
           query: args.query as string,
           count: Math.min((args.count as number) ?? 5, 10),
@@ -252,28 +264,37 @@ async function executeTool(
         return [await readExerciseFile(args.name as string, model), false];
       case "read_manuscript_excerpt":
         if (!model) return ["No project is open.", true];
-        return [await readManuscriptExcerpt(
-          args.chapter as string,
-          (args.start_line as number) ?? 1,
-          (args.end_line as number) ?? 50,
-          model,
-        ), false];
+        return [
+          await readManuscriptExcerpt(
+            args.chapter as string,
+            (args.start_line as number) ?? 1,
+            (args.end_line as number) ?? 50,
+            model,
+          ),
+          false,
+        ];
       case "create_wiki_page":
         if (!model) return ["No project is open.", true];
-        return [await createWikiPage(
-          args.name as string,
-          args.content as string,
-          (args.section as string) ?? "research",
-          model,
-        ), false];
+        return [
+          await createWikiPage(
+            args.name as string,
+            args.content as string,
+            (args.section as string) ?? "research",
+            model,
+          ),
+          false,
+        ];
       case "edit_wiki_page":
         if (!model) return ["No project is open.", true];
-        return [await editWikiPage(
-          args.name as string,
-          args.old_text as string,
-          args.new_text as string,
-          model,
-        ), false];
+        return [
+          await editWikiPage(
+            args.name as string,
+            args.old_text as string,
+            args.new_text as string,
+            model,
+          ),
+          false,
+        ];
       default:
         return [`Unknown tool: ${name}`, true];
     }
@@ -297,55 +318,55 @@ export async function* streamSaga(
     throw new Error("No Anthropic API key configured. Add your key in Menu → Settings.");
   }
 
-  const client = new Anthropic({ apiKey: config.anthropicApiKey, dangerouslyAllowBrowser: true });
-
   let system = SYSTEM_PROMPT_BASE;
   if (currentFile) system += `\n\nCurrently open file: ${currentFile}`;
 
-  const tools: Anthropic.Tool[] = [
+  const tools: ToolDefinition[] = [
     ...(model ? TOOL_DEFINITIONS : []),
     ...(config.braveApiKey ? [SEARCH_TOOL] : []),
   ];
 
   while (true) {
-    const stream = client.messages.stream({
-      model: "claude-sonnet-4-6",
-      max_tokens: 2048,
-      system,
-      messages: apiMessages,
-      ...(tools.length > 0 ? { tools } : {}),
-    });
-
     let textContent = "";
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        textContent += event.delta.text;
-        yield { type: "text", text: event.delta.text };
+    let finalMsg: AnthropicMessage | null = null;
+
+    for await (const event of streamAnthropicRequest(
+      config.anthropicApiKey,
+      "claude-sonnet-4-6",
+      system,
+      apiMessages,
+      tools,
+    )) {
+      if (event.type === "text_delta") {
+        textContent += event.text;
+        yield { type: "text", text: event.text };
+      } else if (event.type === "final_message") {
+        finalMsg = JSON.parse(event.json) as AnthropicMessage;
       }
     }
 
-    const finalMsg = await stream.getFinalMessage();
-    const toolUses = finalMsg.content.filter(
-      (b): b is Anthropic.ToolUseBlock => b.type === "tool_use",
-    );
+    if (!finalMsg) throw new Error("No response received from Anthropic.");
 
     // Append assistant turn to history
-    const assistantContent: Anthropic.MessageParam["content"] = [];
-    if (textContent) (assistantContent as Anthropic.ContentBlockParam[]).push({ type: "text", text: textContent });
-    for (const t of toolUses) {
-      (assistantContent as Anthropic.ContentBlockParam[]).push({
-        type: "tool_use",
-        id: t.id,
-        name: t.name,
-        input: t.input,
-      });
+    const assistantContent: ApiContentBlock[] = [];
+    if (textContent) assistantContent.push({ type: "text", text: textContent });
+    for (const block of finalMsg.content) {
+      if (block.type === "tool_use") {
+        assistantContent.push({
+          type: "tool_use",
+          id: block.id!,
+          name: block.name!,
+          input: block.input as Record<string, unknown>,
+        });
+      }
     }
     apiMessages.push({ role: "assistant", content: assistantContent });
 
+    const toolUses = finalMsg.content.filter((b): b is Required<ContentBlock> => b.type === "tool_use");
     if (toolUses.length === 0) break;
 
     // Execute each tool call
-    const toolResults: Anthropic.ToolResultBlockParam[] = [];
+    const toolResults: ApiContentBlock[] = [];
     for (const tool of toolUses) {
       const args = tool.input as Record<string, unknown>;
       yield { type: "tool_call", id: tool.id, name: tool.name, args };
