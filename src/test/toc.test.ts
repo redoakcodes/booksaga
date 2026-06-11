@@ -20,11 +20,9 @@ describe("TocParser", () => {
     it("appends unlisted files alphabetically after toc entries", () => {
       const toc = `# Table of Contents\n1. chapter-one.md\n`;
       const p = new TocParser(toc);
-      expect(p.orderedChapters(["chapter-one.md", "chapter-two.md", "appendix.md"])).toEqual([
-        "chapter-one.md",
-        "appendix.md",
-        "chapter-two.md",
-      ]);
+      expect(
+        p.orderedChapters(["chapter-one.md", "chapter-two.md", "appendix.md"]),
+      ).toEqual(["chapter-one.md", "appendix.md", "chapter-two.md"]);
     });
 
     it("skips toc entries whose files don't exist on disk", () => {
@@ -36,7 +34,9 @@ describe("TocParser", () => {
     it("excludes toc.md itself", () => {
       const toc = `# Table of Contents\n1. chapter-one.md\n`;
       const p = new TocParser(toc);
-      expect(p.orderedChapters(["toc.md", "chapter-one.md"])).toEqual(["chapter-one.md"]);
+      expect(p.orderedChapters(["toc.md", "chapter-one.md"])).toEqual([
+        "chapter-one.md",
+      ]);
     });
 
     it("handles markdown link syntax [Label](path.md)", () => {
@@ -54,7 +54,12 @@ describe("TocParser", () => {
         "1. part-two.md",
       ].join("\n");
       const p = new TocParser(toc);
-      const all = ["part-one.md", "chapter-one.md", "chapter-two.md", "part-two.md"];
+      const all = [
+        "part-one.md",
+        "chapter-one.md",
+        "chapter-two.md",
+        "part-two.md",
+      ];
       expect(p.orderedChapters(all)).toEqual(all);
     });
 
@@ -97,7 +102,8 @@ describe("TocParser", () => {
 
   describe("serialize", () => {
     it("round-trips a simple list", () => {
-      const toc = "# Table of Contents\n\n1. chapter-one.md\n1. chapter-two.md\n";
+      const toc =
+        "# Table of Contents\n\n1. chapter-one.md\n1. chapter-two.md\n";
       const p = new TocParser(toc);
       const p2 = new TocParser(p.serialize());
       expect(p2.filenames).toEqual(["chapter-one.md", "chapter-two.md"]);
@@ -113,7 +119,8 @@ describe("TocParser", () => {
 
   describe("rootChapters", () => {
     it("returns label and filename for each root entry", () => {
-      const toc = "# Table of Contents\n1. [Chapter One](chapter-one.md)\n1. chapter-two.md\n";
+      const toc =
+        "# Table of Contents\n1. [Chapter One](chapter-one.md)\n1. chapter-two.md\n";
       const p = new TocParser(toc);
       expect(p.rootChapters).toEqual([
         { label: "Chapter One", filename: "chapter-one.md" },
@@ -145,7 +152,8 @@ describe("TocParser", () => {
 
   describe("reorder preserves labels", () => {
     it("keeps labels when reordering", () => {
-      const toc = "# Table of Contents\n1. [Chapter One](a.md)\n1. [Chapter Two](b.md)\n";
+      const toc =
+        "# Table of Contents\n1. [Chapter One](a.md)\n1. [Chapter Two](b.md)\n";
       const p = new TocParser(toc);
       p.reorder(["b.md", "a.md"]);
       expect(p.rootChapters[0].label).toBe("Chapter Two");
@@ -153,7 +161,8 @@ describe("TocParser", () => {
     });
 
     it("keeps children when reordering", () => {
-      const toc = "# Table of Contents\n1. part-a.md\n   1. ch-a1.md\n1. part-b.md\n";
+      const toc =
+        "# Table of Contents\n1. part-a.md\n   1. ch-a1.md\n1. part-b.md\n";
       const p = new TocParser(toc);
       p.reorder(["part-b.md", "part-a.md"]);
       expect(p.filenames).toEqual(["part-b.md", "part-a.md", "ch-a1.md"]);
@@ -170,7 +179,9 @@ describe("TocParser", () => {
     });
 
     it("strips special characters", () => {
-      expect(titleToFilename("Part One: The Beginning")).toBe("part-one-the-beginning.md");
+      expect(titleToFilename("Part One: The Beginning")).toBe(
+        "part-one-the-beginning.md",
+      );
     });
   });
 

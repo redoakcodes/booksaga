@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildWikiIndex, backlinks, forwardLinks, updateWikiIndex } from "../lib/wikiIndex";
+import {
+  buildWikiIndex,
+  backlinks,
+  forwardLinks,
+  updateWikiIndex,
+} from "../lib/wikiIndex";
 
 describe("buildWikiIndex", () => {
   it("returns empty index for empty input", () => {
@@ -63,14 +68,24 @@ describe("buildWikiIndex", () => {
 
 describe("updateWikiIndex", () => {
   it("adds new forward links when a page is saved", () => {
-    const idx = buildWikiIndex(new Map([["wiki/a.md", ""], ["wiki/b.md", ""]]));
+    const idx = buildWikiIndex(
+      new Map([
+        ["wiki/a.md", ""],
+        ["wiki/b.md", ""],
+      ]),
+    );
     const updated = updateWikiIndex(idx, "a.md", "Now links to [[b]].");
     expect(forwardLinks(updated, "a")).toEqual(["b"]);
     expect(backlinks(updated, "b")).toContain("a");
   });
 
   it("removes stale backlinks when links are edited out", () => {
-    const idx = buildWikiIndex(new Map([["wiki/a.md", "[[b]]"], ["wiki/b.md", ""]]));
+    const idx = buildWikiIndex(
+      new Map([
+        ["wiki/a.md", "[[b]]"],
+        ["wiki/b.md", ""],
+      ]),
+    );
     const updated = updateWikiIndex(idx, "a.md", "No more links.");
     expect(forwardLinks(updated, "a")).toEqual([]);
     expect(backlinks(updated, "b")).not.toContain("a");

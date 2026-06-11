@@ -21,8 +21,7 @@ pub fn commit_file(root: &str, rel_path: &str, message: &str) -> Result<(), Stri
     let repo = gix::open(history_dir(root)).map_err(|e| e.to_string())?;
 
     // Read the file that was just written to disk
-    let content = std::fs::read(Path::new(root).join(rel_path))
-        .map_err(|e| e.to_string())?;
+    let content = std::fs::read(Path::new(root).join(rel_path)).map_err(|e| e.to_string())?;
 
     // 1. Write blob
     let blob_id = repo
@@ -77,9 +76,8 @@ fn upsert_in_tree(
     let mut entries: Vec<gix::objs::tree::Entry> = match tree_id {
         Some(tid) => {
             let obj = repo.find_object(tid).map_err(|e| e.to_string())?;
-            let tree =
-                gix::objs::TreeRef::from_bytes(&obj.data, repo.object_hash())
-                    .map_err(|e| e.to_string())?;
+            let tree = gix::objs::TreeRef::from_bytes(&obj.data, repo.object_hash())
+                .map_err(|e| e.to_string())?;
             tree.entries
                 .iter()
                 .map(|e| gix::objs::tree::Entry {
@@ -130,7 +128,7 @@ fn upsert_in_tree(
     }
 
     // Git sorts tree entries with directories treated as name + '/'
-    entries.sort_by(|a, b| sort_key(a).cmp(&sort_key(b)));
+    entries.sort_by_key(sort_key);
 
     let tree = gix::objs::Tree { entries };
     repo.write_object(&tree)
@@ -154,10 +152,7 @@ fn make_sig() -> gix::actor::Signature {
     gix::actor::Signature {
         name: "BookSaga".into(),
         email: "booksaga@local".into(),
-        time: gix::date::Time {
-            seconds,
-            offset: 0,
-        },
+        time: gix::date::Time { seconds, offset: 0 },
     }
 }
 
@@ -235,8 +230,8 @@ mod tests {
         let commit = repo.head_commit().expect("head commit");
         let tree_id = commit.tree_id().expect("tree id").detach();
         let obj = repo.find_object(tree_id).expect("find tree");
-        let tree = gix::objs::TreeRef::from_bytes(&obj.data, repo.object_hash())
-            .expect("parse tree");
+        let tree =
+            gix::objs::TreeRef::from_bytes(&obj.data, repo.object_hash()).expect("parse tree");
         tree.entries
             .iter()
             .map(|e| gix::objs::tree::Entry {
@@ -364,8 +359,7 @@ mod tests {
         let commit = repo.head_commit().unwrap();
         let obj = repo.find_object(commit.id).unwrap();
         let raw = std::str::from_utf8(&obj.data).unwrap();
-        let parent_lines: Vec<&str> =
-            raw.lines().filter(|l| l.starts_with("parent ")).collect();
+        let parent_lines: Vec<&str> = raw.lines().filter(|l| l.starts_with("parent ")).collect();
         assert_eq!(parent_lines.len(), 1);
         assert!(parent_lines[0].contains(&first_id.to_hex().to_string()));
     }

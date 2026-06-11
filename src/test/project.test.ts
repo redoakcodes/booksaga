@@ -1,12 +1,21 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import type { IFileSystem } from "../lib/filesystem";
 import {
-  loadProject, readFile, saveFile, initProject,
-  renameWikiFile, extractH1, wikiFilenameForTitle,
-  promoteOutlineEntry, createExerciseFile,
-  createMindmapFile, createTimelineFile,
+  loadProject,
+  readFile,
+  saveFile,
+  initProject,
+  renameWikiFile,
+  extractH1,
+  wikiFilenameForTitle,
+  promoteOutlineEntry,
+  createExerciseFile,
+  createMindmapFile,
+  createTimelineFile,
   buildExerciseContext,
-  MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR,
+  MANUSCRIPT_DIR,
+  WIKI_DIR,
+  EXERCISES_DIR,
 } from "../lib/project";
 import { TOC_TEMPLATE } from "../lib/toc";
 
@@ -92,14 +101,20 @@ describe("loadProject", () => {
   });
 
   it("reads project config", async () => {
-    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "My Novel", author: "Brent" } }));
+    fs.files.set(
+      ".booksaga/config.json",
+      JSON.stringify({ project: { title: "My Novel", author: "Brent" } }),
+    );
     const model = await loadProject(fs);
     expect(model.config.project.title).toBe("My Novel");
     expect(model.config.project.author).toBe("Brent");
   });
 
   it("returns chapters in toc order", async () => {
-    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# Table of Contents\n1. b.md\n1. a.md\n");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/toc.md`,
+      "# Table of Contents\n1. b.md\n1. a.md\n",
+    );
     fs.files.set(`${MANUSCRIPT_DIR}/a.md`, "");
     fs.files.set(`${MANUSCRIPT_DIR}/b.md`, "");
     const model = await loadProject(fs);
@@ -110,7 +125,10 @@ describe("loadProject", () => {
     fs.files.set(`${WIKI_DIR}/characters/elara.md`, "");
     fs.files.set(`${WIKI_DIR}/locations/city.md`, "");
     const model = await loadProject(fs);
-    expect(model.wikiFiles).toEqual(["characters/elara.md", "locations/city.md"]);
+    expect(model.wikiFiles).toEqual([
+      "characters/elara.md",
+      "locations/city.md",
+    ]);
   });
 
   it("lists exercise files", async () => {
@@ -120,7 +138,7 @@ describe("loadProject", () => {
   });
 
   it("builds wiki index from wiki file contents", async () => {
-    fs.files.set(`${WIKI_DIR}/elara.md`, "Knows [[City]]."),
+    fs.files.set(`${WIKI_DIR}/elara.md`, "Knows [[City]].");
     fs.files.set(`${WIKI_DIR}/city.md`, "");
     const model = await loadProject(fs);
     expect(model.wikiIndex.backward.get("city")).toContain("elara");
@@ -140,7 +158,10 @@ describe("readFile / saveFile", () => {
   });
 
   it("reads a manuscript file", async () => {
-    fs.files.set(`${MANUSCRIPT_DIR}/chapter-one.md`, "# Chapter One\n\nContent here.");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/chapter-one.md`,
+      "# Chapter One\n\nContent here.",
+    );
     const model = await loadProject(fs);
     const content = await readFile(model, "manuscript", "chapter-one.md");
     expect(content).toBe("# Chapter One\n\nContent here.");
@@ -155,7 +176,9 @@ describe("readFile / saveFile", () => {
   it("saves a manuscript file", async () => {
     const model = await loadProject(fs);
     await saveFile(model, "manuscript", "chapter-one.md", "New content");
-    expect(fs.files.get(`${MANUSCRIPT_DIR}/chapter-one.md`)).toBe("New content");
+    expect(fs.files.get(`${MANUSCRIPT_DIR}/chapter-one.md`)).toBe(
+      "New content",
+    );
   });
 
   it("saves a wiki file", async () => {
@@ -181,7 +204,9 @@ describe("extractH1", () => {
 
 describe("wikiFilenameForTitle", () => {
   it("slugifies the title", () => {
-    expect(wikiFilenameForTitle("Elara the Wise", "elara.md")).toBe("elara-the-wise.md");
+    expect(wikiFilenameForTitle("Elara the Wise", "elara.md")).toBe(
+      "elara-the-wise.md",
+    );
   });
 
   it("preserves the directory prefix", () => {
@@ -207,7 +232,13 @@ describe("renameWikiFile", () => {
   it("writes content to the new path and deletes the old", async () => {
     fs.files.set(`${WIKI_DIR}/elara.md`, "# Elara\n\nHero.");
     const model = await loadProject(fs);
-    await renameWikiFile(model, "elara.md", "elara-the-wise.md", "Elara the Wise", "# Elara the Wise\n\nHero.");
+    await renameWikiFile(
+      model,
+      "elara.md",
+      "elara-the-wise.md",
+      "Elara the Wise",
+      "# Elara the Wise\n\nHero.",
+    );
     expect(fs.files.has(`${WIKI_DIR}/elara-the-wise.md`)).toBe(true);
     expect(fs.files.has(`${WIKI_DIR}/elara.md`)).toBe(false);
   });
@@ -216,15 +247,29 @@ describe("renameWikiFile", () => {
     fs.files.set(`${WIKI_DIR}/elara.md`, "# Elara\n\n");
     fs.files.set(`${WIKI_DIR}/city.md`, "Home of [[Elara]].");
     const model = await loadProject(fs);
-    await renameWikiFile(model, "elara.md", "elara-the-wise.md", "Elara the Wise", "# Elara the Wise\n\n");
-    expect(fs.files.get(`${WIKI_DIR}/city.md`)).toBe("Home of [[Elara the Wise]].");
+    await renameWikiFile(
+      model,
+      "elara.md",
+      "elara-the-wise.md",
+      "Elara the Wise",
+      "# Elara the Wise\n\n",
+    );
+    expect(fs.files.get(`${WIKI_DIR}/city.md`)).toBe(
+      "Home of [[Elara the Wise]].",
+    );
   });
 
   it("does not touch files with no matching links", async () => {
     fs.files.set(`${WIKI_DIR}/elara.md`, "# Elara\n\n");
     fs.files.set(`${WIKI_DIR}/city.md`, "No links here.");
     const model = await loadProject(fs);
-    await renameWikiFile(model, "elara.md", "elara-the-wise.md", "Elara the Wise", "# Elara the Wise\n\n");
+    await renameWikiFile(
+      model,
+      "elara.md",
+      "elara-the-wise.md",
+      "Elara the Wise",
+      "# Elara the Wise\n\n",
+    );
     expect(fs.files.get(`${WIKI_DIR}/city.md`)).toBe("No links here.");
   });
 
@@ -232,7 +277,13 @@ describe("renameWikiFile", () => {
     fs.files.set(`${WIKI_DIR}/elara.md`, "# Elara\n\n");
     fs.files.set(`${WIKI_DIR}/city.md`, "See [[ELARA]] and [[elara]].");
     const model = await loadProject(fs);
-    await renameWikiFile(model, "elara.md", "elara-the-wise.md", "Elara the Wise", "# Elara the Wise\n\n");
+    await renameWikiFile(
+      model,
+      "elara.md",
+      "elara-the-wise.md",
+      "Elara the Wise",
+      "# Elara the Wise\n\n",
+    );
     expect(fs.files.get(`${WIKI_DIR}/city.md`)).toBe(
       "See [[Elara the Wise]] and [[Elara the Wise]].",
     );
@@ -242,7 +293,10 @@ describe("renameWikiFile", () => {
 describe("promoteOutlineEntry", () => {
   it("creates the file and updates the TOC path", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# Table of Contents\n1. Part One\n");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/toc.md`,
+      "# Table of Contents\n1. Part One\n",
+    );
     const model = await loadProject(fs);
     const filename = await promoteOutlineEntry(model, "Part One");
     expect(filename).toBe("part-one.md");
@@ -251,15 +305,23 @@ describe("promoteOutlineEntry", () => {
 
   it("writes an H1 matching the label", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# Table of Contents\n1. Part One\n");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/toc.md`,
+      "# Table of Contents\n1. Part One\n",
+    );
     const model = await loadProject(fs);
     await promoteOutlineEntry(model, "Part One");
-    expect(fs.files.get(`${MANUSCRIPT_DIR}/part-one.md`)).toMatch(/^# Part One/);
+    expect(fs.files.get(`${MANUSCRIPT_DIR}/part-one.md`)).toMatch(
+      /^# Part One/,
+    );
   });
 
   it("links the TOC entry to the new file in toc.md", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# Table of Contents\n1. Part One\n");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/toc.md`,
+      "# Table of Contents\n1. Part One\n",
+    );
     const model = await loadProject(fs);
     await promoteOutlineEntry(model, "Part One");
     const saved = fs.files.get(`${MANUSCRIPT_DIR}/toc.md`)!;
@@ -284,7 +346,10 @@ describe("createExerciseFile", () => {
   it("writes a timestamped markdown file to the exercises dir", async () => {
     const fs = new MockFileSystem();
     const model = await loadProject(fs);
-    const filename = await createExerciseFile(model, "Write a scene about longing.");
+    const filename = await createExerciseFile(
+      model,
+      "Write a scene about longing.",
+    );
     expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-\d{2}-\d{2}-\d{2}\.md$/);
     expect(fs.files.has(`${EXERCISES_DIR}/${filename}`)).toBe(true);
   });
@@ -420,7 +485,10 @@ describe("initProject", () => {
 describe("buildExerciseContext", () => {
   it("includes project title and author", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "The Novel", author: "Brent" } }));
+    fs.files.set(
+      ".booksaga/config.json",
+      JSON.stringify({ project: { title: "The Novel", author: "Brent" } }),
+    );
     const model = await loadProject(fs);
     const ctx = await buildExerciseContext(model);
     expect(ctx).toContain("The Novel");
@@ -429,7 +497,10 @@ describe("buildExerciseContext", () => {
 
   it("omits author line when author is empty", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "Untitled", author: "" } }));
+    fs.files.set(
+      ".booksaga/config.json",
+      JSON.stringify({ project: { title: "Untitled", author: "" } }),
+    );
     const model = await loadProject(fs);
     const ctx = await buildExerciseContext(model);
     expect(ctx).not.toContain("Author:");
@@ -438,7 +509,10 @@ describe("buildExerciseContext", () => {
   it("includes an excerpt from one of the chapters", async () => {
     const fs = new MockFileSystem();
     fs.files.set(`${MANUSCRIPT_DIR}/toc.md`, "# TOC\n1. chapter-one.md\n");
-    fs.files.set(`${MANUSCRIPT_DIR}/chapter-one.md`, "# Chapter One\n\nOnce upon a time.");
+    fs.files.set(
+      `${MANUSCRIPT_DIR}/chapter-one.md`,
+      "# Chapter One\n\nOnce upon a time.",
+    );
     const model = await loadProject(fs);
     const ctx = await buildExerciseContext(model);
     expect(ctx).toContain("Once upon a time.");
@@ -466,7 +540,10 @@ describe("buildExerciseContext", () => {
 
   it("produces a non-empty context with no chapters or wiki", async () => {
     const fs = new MockFileSystem();
-    fs.files.set(".booksaga/config.json", JSON.stringify({ project: { title: "Empty Project", author: "" } }));
+    fs.files.set(
+      ".booksaga/config.json",
+      JSON.stringify({ project: { title: "Empty Project", author: "" } }),
+    );
     const model = await loadProject(fs);
     const ctx = await buildExerciseContext(model);
     expect(ctx.length).toBeGreaterThan(0);

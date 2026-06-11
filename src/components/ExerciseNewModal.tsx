@@ -27,8 +27,14 @@ const ExerciseNewModal: Component<Props> = (props) => {
     setError(null);
     setGenState("generating");
     try {
-      const context = props.model ? await buildExerciseContext(props.model) : undefined;
-      for await (const chunk of streamExercise(entry.prompt, props.aiConfig, context)) {
+      const context = props.model
+        ? await buildExerciseContext(props.model)
+        : undefined;
+      for await (const chunk of streamExercise(
+        entry.prompt,
+        props.aiConfig,
+        context,
+      )) {
         setResult((r) => r + chunk);
       }
       setGenState("done");
@@ -39,12 +45,17 @@ const ExerciseNewModal: Component<Props> = (props) => {
   }
 
   return (
-    <div class="modal-overlay" onClick={props.onCancel}>
-      <div class="modal-box exercise-modal" onClick={(e) => e.stopPropagation()}>
+    <div class="modal-overlay" onClick={() => props.onCancel()}>
+      <div
+        class="modal-box exercise-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 class="modal-title">New Exercise</h2>
 
         <div class="new-modal-field">
-          <label class="new-modal-label" for="exercise-prompt">Prompt</label>
+          <label class="new-modal-label" for="exercise-prompt">
+            Prompt
+          </label>
           <select
             id="exercise-prompt"
             class="new-modal-input"
@@ -57,7 +68,12 @@ const ExerciseNewModal: Component<Props> = (props) => {
           </select>
         </div>
 
-        <div class="exercise-result" classList={{ "exercise-result--active": genState() !== "idle" || !!error() }}>
+        <div
+          class="exercise-result"
+          classList={{
+            "exercise-result--active": genState() !== "idle" || !!error(),
+          }}
+        >
           <Show when={error()}>
             <p class="exercise-result-error">{error()}</p>
           </Show>
@@ -74,10 +90,19 @@ const ExerciseNewModal: Component<Props> = (props) => {
         </div>
 
         <div class="modal-actions">
-          <button class="btn-secondary" onClick={props.onCancel}>Cancel</button>
+          <button class="btn-secondary" onClick={() => props.onCancel()}>
+            Cancel
+          </button>
           <Show when={genState() === "done"}>
-            <button class="btn-secondary" onClick={generate}>Regenerate</button>
-            <button class="btn-primary" onClick={() => props.onCreate(result())}>Create</button>
+            <button class="btn-secondary" onClick={generate}>
+              Regenerate
+            </button>
+            <button
+              class="btn-primary"
+              onClick={() => props.onCreate(result())}
+            >
+              Create
+            </button>
           </Show>
           <Show when={genState() !== "done"}>
             <button

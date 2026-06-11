@@ -55,7 +55,10 @@ const NodeItem: Component<NodeItemProps> = (props) => {
           <Show when={hasChildren()}>
             <button
               class="toc-expand-btn"
-              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setExpanded((v) => !v);
+              }}
             >
               {expanded() ? "▾" : "▸"}
             </button>
@@ -69,13 +72,17 @@ const NodeItem: Component<NodeItemProps> = (props) => {
               disabled={props.index === 0}
               title="Move up"
               onClick={() => props.onRootReorder!(props.index, props.index - 1)}
-            >▲</button>
+            >
+              ▲
+            </button>
             <button
               class="toc-move-btn"
               disabled={props.index === props.total - 1}
               title="Move down"
               onClick={() => props.onRootReorder!(props.index, props.index + 1)}
-            >▼</button>
+            >
+              ▼
+            </button>
           </span>
         </Show>
       </li>
@@ -105,11 +112,20 @@ const TocList: Component<Props> = (props) => {
 
   const rootNodes = () => props.nodes;
 
-  function startAdding() { setNewTitle(""); setAdding(true); }
-  function cancelAdding() { setAdding(false); setNewTitle(""); }
+  function startAdding() {
+    setNewTitle("");
+    setAdding(true);
+  }
+  function cancelAdding() {
+    setAdding(false);
+    setNewTitle("");
+  }
   function commitNew() {
     const title = newTitle().trim();
-    if (!title) { cancelAdding(); return; }
+    if (!title) {
+      cancelAdding();
+      return;
+    }
     props.onNewChapter(title);
     cancelAdding();
   }
@@ -117,7 +133,9 @@ const TocList: Component<Props> = (props) => {
   return (
     <div class="toc-list">
       <div class="toc-toolbar">
-        <button class="toc-add-btn" onClick={startAdding}>+ Chapter</button>
+        <button class="toc-add-btn" onClick={startAdding}>
+          + Chapter
+        </button>
       </div>
 
       <Show when={adding()}>

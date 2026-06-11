@@ -20,7 +20,14 @@ const SETTINGS_FILE = "booksaga.json";
 const DEFAULTS: AppSettings = { theme: "dark" };
 
 const VALID_THEMES = new Set<string>([
-  "dark", "light", "scifi", "noire", "fantasy", "cyberpunk", "romance", "horror",
+  "dark",
+  "light",
+  "scifi",
+  "noire",
+  "fantasy",
+  "cyberpunk",
+  "romance",
+  "horror",
 ]);
 
 export async function loadSettings(fs: IFileSystem): Promise<AppSettings> {
@@ -30,15 +37,22 @@ export async function loadSettings(fs: IFileSystem): Promise<AppSettings> {
     const parsed = JSON.parse(raw);
     return {
       theme: VALID_THEMES.has(parsed.theme) ? (parsed.theme as Theme) : "dark",
-      anthropicApiKey: typeof parsed.anthropicApiKey === "string" ? parsed.anthropicApiKey : undefined,
-      braveApiKey: typeof parsed.braveApiKey === "string" ? parsed.braveApiKey : undefined,
+      anthropicApiKey:
+        typeof parsed.anthropicApiKey === "string"
+          ? parsed.anthropicApiKey
+          : undefined,
+      braveApiKey:
+        typeof parsed.braveApiKey === "string" ? parsed.braveApiKey : undefined,
     };
   } catch {
     return { ...DEFAULTS };
   }
 }
 
-export async function saveSettings(fs: IFileSystem, settings: AppSettings): Promise<void> {
+export async function saveSettings(
+  fs: IFileSystem,
+  settings: AppSettings,
+): Promise<void> {
   await fs.writeFile([SETTINGS_FILE], JSON.stringify(settings, null, 2) + "\n");
 }
 

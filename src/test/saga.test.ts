@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { AiConfig } from "../lib/ai";
 import type { AgentEvent, ApiMessage } from "../lib/saga";
+import type { ProjectModel } from "../lib/project";
 
 vi.mock("@tauri-apps/api/core", () => ({
   Channel: class {
@@ -32,14 +33,21 @@ function finalMessage(
   for (const t of toolUses) content.push({ type: "tool_use", ...t });
   return {
     type: "final_message",
-    json: JSON.stringify({ id: "msg_1", role: "assistant", content, stop_reason: toolUses.length ? "tool_use" : "end_turn" }),
+    json: JSON.stringify({
+      id: "msg_1",
+      role: "assistant",
+      content,
+      stop_reason: toolUses.length ? "tool_use" : "end_turn",
+    }),
   };
 }
 
 const config: AiConfig = { anthropicApiKey: "sk-test" };
 const noConfirm = async () => false;
 
-async function collectEvents(gen: AsyncGenerator<AgentEvent>): Promise<AgentEvent[]> {
+async function collectEvents(
+  gen: AsyncGenerator<AgentEvent>,
+): Promise<AgentEvent[]> {
   const events: AgentEvent[] = [];
   for await (const e of gen) events.push(e);
   return events;
@@ -62,10 +70,20 @@ describe("streamSaga", () => {
     ]);
 
     const events = await collectEvents(
-      streamSaga([{ role: "user", content: "Hi" }], config, null, null, noConfirm),
+      streamSaga(
+        [{ role: "user", content: "Hi" }],
+        config,
+        null,
+        null,
+        noConfirm,
+      ),
     );
 
-    expect(events.some((e) => e.type === "text" && (e as { text: string }).text === "Hello!")).toBe(true);
+    expect(
+      events.some(
+        (e) => e.type === "text" && (e as { text: string }).text === "Hello!",
+      ),
+    ).toBe(true);
     expect(events[events.length - 1].type).toBe("done");
   });
 
@@ -73,7 +91,9 @@ describe("streamSaga", () => {
     simulateStream([finalMessage("Response")]);
     const messages: ApiMessage[] = [{ role: "user", content: "Hello" }];
 
-    for await (const _ of streamSaga(messages, config, null, null, noConfirm)) { /* drain */ }
+    for await (const _ of streamSaga(messages, config, null, null, noConfirm)) {
+      /* drain */
+    }
 
     expect(messages).toHaveLength(2);
     expect(messages[1].role).toBe("assistant");
@@ -81,7 +101,9 @@ describe("streamSaga", () => {
 
   it("uses claude-sonnet as the model", async () => {
     simulateStream([finalMessage("ok")]);
-    for await (const _ of streamSaga([], config, null, null, noConfirm)) { /* drain */ }
+    for await (const _ of streamSaga([], config, null, null, noConfirm)) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
     expect(args.model).toContain("sonnet");
@@ -89,7 +111,9 @@ describe("streamSaga", () => {
 
   it("includes no tools when model is null", async () => {
     simulateStream([finalMessage("ok")]);
-    for await (const _ of streamSaga([], config, null, null, noConfirm)) { /* drain */ }
+    for await (const _ of streamSaga([], config, null, null, noConfirm)) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
     const tools = JSON.parse(args.toolsJson as string) as unknown[];
@@ -99,7 +123,9 @@ describe("streamSaga", () => {
   it("yields tool_call and tool_result events, then loops for second response", async () => {
     simulateStream([
       { type: "text_delta", text: "Let me check." },
-      finalMessage("Let me check.", [{ id: "t1", name: "list_wiki_pages", input: {} }]),
+      finalMessage("Let me check.", [
+        { id: "t1", name: "list_wiki_pages", input: {} },
+      ]),
     ]);
     simulateStream([finalMessage("Done!")]);
 
@@ -112,8 +138,13 @@ describe("streamSaga", () => {
     };
 
     const events = await collectEvents(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      streamSaga([{ role: "user", content: "List pages" }], config, fakeModel as any, null, noConfirm),
+      streamSaga(
+        [{ role: "user", content: "List pages" }],
+        config,
+        fakeModel as unknown as ProjectModel,
+        null,
+        noConfirm,
+      ),
     );
 
     expect(events.some((e) => e.type === "tool_call")).toBe(true);
@@ -123,7 +154,13 @@ describe("streamSaga", () => {
 
   it("does not execute write tools when confirm returns false", async () => {
     simulateStream([
-      finalMessage("", [{ id: "t1", name: "create_wiki_page", input: { name: "elara", content: "# Elara" } }]),
+      finalMessage("", [
+        {
+          id: "t1",
+          name: "create_wiki_page",
+          input: { name: "elara", content: "# Elara" },
+        },
+      ]),
     ]);
     simulateStream([finalMessage("Cancelled.")]);
 
@@ -134,12 +171,21 @@ describe("streamSaga", () => {
       chapters: [],
       fs: {
         readFile: async () => null,
-        writeFile: async (parts: string[]) => { written.push(parts.join("/")); },
+        writeFile: async (parts: string[]) => {
+          written.push(parts.join("/"));
+        },
       },
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for await (const _ of streamSaga([], config, fakeModel as any, null, async () => false)) { /* drain */ }
+    for await (const _ of streamSaga(
+      [],
+      config,
+      fakeModel as unknown as ProjectModel,
+      null,
+      async () => false,
+    )) {
+      /* drain */
+    }
 
     expect(written).toHaveLength(0);
   });

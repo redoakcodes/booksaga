@@ -70,33 +70,50 @@ describe("streamExercise", () => {
 
   it("calls anthropic_stream with the correct command", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) { /* drain */ }
-    expect(mockInvoke).toHaveBeenCalledWith("anthropic_stream", expect.any(Object));
+    for await (const _ of streamExercise("prompt", config)) {
+      /* drain */
+    }
+    expect(mockInvoke).toHaveBeenCalledWith(
+      "anthropic_stream",
+      expect.any(Object),
+    );
   });
 
   it("passes the prompt in the user message", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("My writing prompt", config)) { /* drain */ }
+    for await (const _ of streamExercise("My writing prompt", config)) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
-    const messages = JSON.parse(args.messagesJson as string) as { role: string; content: string }[];
+    const messages = JSON.parse(args.messagesJson as string) as {
+      role: string;
+      content: string;
+    }[];
     expect(messages[0].role).toBe("user");
     expect(messages[0].content).toContain("My writing prompt");
   });
 
   it("appends context to the message when provided", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("Prompt", config, "context data")) { /* drain */ }
+    for await (const _ of streamExercise("Prompt", config, "context data")) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
-    const messages = JSON.parse(args.messagesJson as string) as { role: string; content: string }[];
+    const messages = JSON.parse(args.messagesJson as string) as {
+      role: string;
+      content: string;
+    }[];
     expect(messages[0].content).toContain("context data");
     expect(messages[0].content).toContain("Prompt");
   });
 
   it("uses claude-haiku as the model", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) { /* drain */ }
+    for await (const _ of streamExercise("prompt", config)) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
     expect(args.model).toContain("haiku");
@@ -104,7 +121,9 @@ describe("streamExercise", () => {
 
   it("passes an empty tools array", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) { /* drain */ }
+    for await (const _ of streamExercise("prompt", config)) {
+      /* drain */
+    }
 
     const args = mockInvoke.mock.calls[0][1] as Record<string, unknown>;
     expect(JSON.parse(args.toolsJson as string)).toEqual([]);

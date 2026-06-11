@@ -178,7 +178,10 @@ fn does_not_touch_existing_dot_git() {
     // The user's .git/refs has no booksaga commits
     let user_refs = dir.path().join(".git/refs/heads");
     let entries: Vec<_> = fs::read_dir(&user_refs).unwrap().collect();
-    assert!(entries.is_empty(), ".git/refs/heads should have no booksaga refs");
+    assert!(
+        entries.is_empty(),
+        ".git/refs/heads should have no booksaga refs"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -226,7 +229,11 @@ fn save_after_import_extends_history() {
     commit_file(r, "manuscript/toc.md", "save: toc").unwrap();
 
     // User edits a chapter
-    write(&dir, "manuscript/chapter-one.md", b"# Chapter One\n\nNew content.\n");
+    write(
+        &dir,
+        "manuscript/chapter-one.md",
+        b"# Chapter One\n\nNew content.\n",
+    );
     commit_file(r, "manuscript/chapter-one.md", "save: chapter-one").unwrap();
 
     let repo = open_repo(&dir);

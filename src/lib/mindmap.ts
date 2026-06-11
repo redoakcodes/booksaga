@@ -10,10 +10,12 @@ export interface MindmapNode {
 function stripShapeMarkers(raw: string): string {
   const ID = "[A-Za-z0-9_]*";
   let m: RegExpMatchArray | null;
-  if ((m = raw.match(new RegExp(`^${ID}\\(\\((.+?)\\)\\)$`)))) return m[1].trim();
+  if ((m = raw.match(new RegExp(`^${ID}\\(\\((.+?)\\)\\)$`))))
+    return m[1].trim();
   if ((m = raw.match(new RegExp(`^${ID}\\(([^)]+)\\)$`)))) return m[1].trim();
   if ((m = raw.match(new RegExp(`^${ID}\\[([^\\]]+)\\]$`)))) return m[1].trim();
-  if ((m = raw.match(new RegExp(`^${ID}\\{\\{([^}]+)\\}\\}$`)))) return m[1].trim();
+  if ((m = raw.match(new RegExp(`^${ID}\\{\\{([^}]+)\\}\\}$`))))
+    return m[1].trim();
   if ((m = raw.match(/^>(.+)$/))) return m[1].trim();
   return raw.trim();
 }

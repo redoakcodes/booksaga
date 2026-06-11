@@ -21,13 +21,19 @@ pub struct ScannedProject {
 }
 
 fn collect_by_ext(dir: &Path, prefix: &str, ext: &str, out: &mut Vec<String>) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     let mut names: Vec<_> = entries.flatten().collect();
     names.sort_by_key(|e| e.file_name());
     for entry in names {
         let name = entry.file_name();
         let name = name.to_string_lossy();
-        let rel = if prefix.is_empty() { name.to_string() } else { format!("{prefix}/{name}") };
+        let rel = if prefix.is_empty() {
+            name.to_string()
+        } else {
+            format!("{prefix}/{name}")
+        };
         let path = entry.path();
         if path.is_file() && name.ends_with(ext) {
             out.push(rel);
@@ -38,11 +44,15 @@ fn collect_by_ext(dir: &Path, prefix: &str, ext: &str, out: &mut Vec<String>) {
 }
 
 fn collect_subdirs(dir: &Path, prefix: &str, out: &mut Vec<String>) {
-    let Ok(entries) = std::fs::read_dir(dir) else { return };
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return;
+    };
     let mut names: Vec<_> = entries.flatten().collect();
     names.sort_by_key(|e| e.file_name());
     for entry in names {
-        if !entry.path().is_dir() { continue; }
+        if !entry.path().is_dir() {
+            continue;
+        }
         let name = entry.file_name();
         let rel = if prefix.is_empty() {
             name.to_string_lossy().to_string()
@@ -117,8 +127,14 @@ enum AnthropicEvent {
 }
 
 enum ContentBlock {
-    Text { content: String },
-    ToolUse { id: String, name: String, json_accum: String },
+    Text {
+        content: String,
+    },
+    ToolUse {
+        id: String,
+        name: String,
+        json_accum: String,
+    },
 }
 
 #[tauri::command]
@@ -203,10 +219,7 @@ async fn anthropic_stream(
                             let btype = ev["content_block"]["type"].as_str().unwrap_or("");
                             let block = if btype == "tool_use" {
                                 ContentBlock::ToolUse {
-                                    id: ev["content_block"]["id"]
-                                        .as_str()
-                                        .unwrap_or("")
-                                        .to_owned(),
+                                    id: ev["content_block"]["id"].as_str().unwrap_or("").to_owned(),
                                     name: ev["content_block"]["name"]
                                         .as_str()
                                         .unwrap_or("")
@@ -214,7 +227,9 @@ async fn anthropic_stream(
                                     json_accum: String::new(),
                                 }
                             } else {
-                                ContentBlock::Text { content: String::new() }
+                                ContentBlock::Text {
+                                    content: String::new(),
+                                }
                             };
                             blocks.insert(idx, block);
                         }
@@ -222,8 +237,7 @@ async fn anthropic_stream(
                             let idx = ev["index"].as_u64().unwrap_or(0) as usize;
                             let dtype = ev["delta"]["type"].as_str().unwrap_or("");
                             if dtype == "text_delta" {
-                                let text =
-                                    ev["delta"]["text"].as_str().unwrap_or("").to_owned();
+                                let text = ev["delta"]["text"].as_str().unwrap_or("").to_owned();
                                 if !text.is_empty() {
                                     on_event
                                         .send(AnthropicEvent::TextDelta { text: text.clone() })
@@ -235,11 +249,12 @@ async fn anthropic_stream(
                                     }
                                 }
                             } else if dtype == "input_json_delta" {
-                                let partial =
-                                    ev["delta"]["partial_json"].as_str().unwrap_or("").to_owned();
+                                let partial = ev["delta"]["partial_json"]
+                                    .as_str()
+                                    .unwrap_or("")
+                                    .to_owned();
                                 if let Some(ContentBlock::ToolUse {
-                                    ref mut json_accum,
-                                    ..
+                                    ref mut json_accum, ..
                                 }) = blocks.get_mut(&idx)
                                 {
                                     json_accum.push_str(&partial);
@@ -247,10 +262,8 @@ async fn anthropic_stream(
                             }
                         }
                         "message_delta" => {
-                            stop_reason = ev["delta"]["stop_reason"]
-                                .as_str()
-                                .unwrap_or("")
-                                .to_owned();
+                            stop_reason =
+                                ev["delta"]["stop_reason"].as_str().unwrap_or("").to_owned();
                         }
                         _ => {}
                     }
@@ -265,7 +278,11 @@ async fn anthropic_stream(
             ContentBlock::Text { content } => {
                 serde_json::json!({"type": "text", "text": content})
             }
-            ContentBlock::ToolUse { id, name, json_accum } => {
+            ContentBlock::ToolUse {
+                id,
+                name,
+                json_accum,
+            } => {
                 let input: serde_json::Value =
                     serde_json::from_str(&json_accum).unwrap_or(serde_json::json!({}));
                 serde_json::json!({"type": "tool_use", "id": id, "name": name, "input": input})
@@ -282,7 +299,9 @@ async fn anthropic_stream(
     });
 
     on_event
-        .send(AnthropicEvent::FinalMessage { json: final_msg.to_string() })
+        .send(AnthropicEvent::FinalMessage {
+            json: final_msg.to_string(),
+        })
         .map_err(|e| e.to_string())?;
 
     Ok(())
@@ -313,7 +332,13 @@ async fn save_image(root_path: String, filename: String, bytes: Vec<u8>) -> Resu
         .map(|n| {
             n.to_string_lossy()
                 .chars()
-                .map(|c| if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') { c } else { '_' })
+                .map(|c| {
+                    if c.is_alphanumeric() || matches!(c, '.' | '-' | '_') {
+                        c
+                    } else {
+                        '_'
+                    }
+                })
                 .collect::<String>()
         })
         .filter(|n| !n.is_empty())
@@ -343,7 +368,7 @@ fn mime_for_ext(ext: &str) -> &'static str {
 
 #[tauri::command]
 async fn brave_search(query: String, count: u8, api_key: String) -> Result<String, String> {
-    let n = count.min(10).max(1);
+    let n = count.clamp(1, 10);
     let client = reqwest::Client::new();
     let resp = client
         .get("https://api.search.brave.com/res/v1/web/search")
@@ -403,10 +428,7 @@ pub fn run() {
             let file_path = Path::new(root).join(url_path);
             match std::fs::read(&file_path) {
                 Ok(bytes) => {
-                    let ext = file_path
-                        .extension()
-                        .and_then(|e| e.to_str())
-                        .unwrap_or("");
+                    let ext = file_path.extension().and_then(|e| e.to_str()).unwrap_or("");
                     tauri::http::Response::builder()
                         .header("Content-Type", mime_for_ext(ext))
                         .body(bytes)

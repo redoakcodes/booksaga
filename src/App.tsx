@@ -33,7 +33,12 @@ import DiagramEditor from "./components/DiagramEditor";
 import DiagramSourceEditor from "./components/DiagramSourceEditor";
 import SagaConsole from "./components/SagaConsole";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
-import { loadSettings, saveSettings, applyTheme, type AppSettings } from "./lib/settings";
+import {
+  loadSettings,
+  saveSettings,
+  applyTheme,
+  type AppSettings,
+} from "./lib/settings";
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
@@ -49,7 +54,10 @@ function updateWikiTitleMap(
 ): Map<string, string> {
   const next = new Map(map);
   for (const [title, fn] of next) {
-    if (fn === filename) { next.delete(title); break; }
+    if (fn === filename) {
+      next.delete(title);
+      break;
+    }
   }
   const h1 = extractH1(content);
   if (h1) next.set(h1, filename);
@@ -61,15 +69,22 @@ const App: Component = () => {
   const [viewMarkdown, setViewMarkdown] = createSignal(false);
   const [wikiNewOpen, setWikiNewOpen] = createSignal(false);
   const [wikiNewInitialDir, setWikiNewInitialDir] = createSignal("");
-  const [pendingDelete, setPendingDelete] = createSignal<{ path: string; kind: "file" | "dir"; fileCount: number } | null>(null);
+  const [pendingDelete, setPendingDelete] = createSignal<{
+    path: string;
+    kind: "file" | "dir";
+    fileCount: number;
+  } | null>(null);
   const [settingsOpen, setSettingsOpen] = createSignal(false);
-  const [appSettings, setAppSettings] = createSignal<AppSettings>({ theme: "dark" });
+  const [appSettings, setAppSettings] = createSignal<AppSettings>({
+    theme: "dark",
+  });
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
   const prompts: PromptEntry[] = promptsData;
 
-  const wikiTitleMap = () => store.project()?.wikiTitleMap ?? new Map<string, string>();
+  const wikiTitleMap = () =>
+    store.project()?.wikiTitleMap ?? new Map<string, string>();
   const wikiTitles = () => Array.from(wikiTitleMap().keys());
 
   createEffect(() => {
@@ -84,7 +99,9 @@ const App: Component = () => {
   createEffect(() => {
     const project = store.project();
     if (!project) return;
-    invoke("set_project_root", { root: (project.fs as TauriFileSystem).rootPath }).catch(() => {});
+    invoke("set_project_root", {
+      root: (project.fs as TauriFileSystem).rootPath,
+    }).catch(() => {});
   });
 
   let imageInputRef!: HTMLInputElement;
@@ -99,7 +116,11 @@ const App: Component = () => {
     const rootPath = (project.fs as TauriFileSystem).rootPath;
     const bytes = Array.from(new Uint8Array(await file.arrayBuffer()));
     try {
-      const savedName = await invoke<string>("save_image", { rootPath, filename: file.name, bytes });
+      const savedName = await invoke<string>("save_image", {
+        rootPath,
+        filename: file.name,
+        bytes,
+      });
       insertMarkdown(`![](booksaga://localhost/manuscript/art/${savedName})`);
     } catch (err) {
       console.error("Failed to save image:", err);
@@ -132,7 +153,13 @@ const App: Component = () => {
         const newFilename = h1 ? wikiFilenameForTitle(h1, file.filename) : null;
 
         if (newFilename && newFilename !== file.filename) {
-          await renameWikiFile(project, file.filename, newFilename, h1!, file.content);
+          await renameWikiFile(
+            project,
+            file.filename,
+            newFilename,
+            h1!,
+            file.content,
+          );
           const fresh = await loadProject(project.fs);
           store.setProject(fresh);
           store.setOpenFile({ ...file, filename: newFilename, dirty: false });
@@ -141,8 +168,16 @@ const App: Component = () => {
           store.patchOpenFile({ dirty: false });
           store.setProject({
             ...project,
-            wikiIndex: updateWikiIndex(project.wikiIndex, file.filename, file.content),
-            wikiTitleMap: updateWikiTitleMap(project.wikiTitleMap, file.filename, file.content),
+            wikiIndex: updateWikiIndex(
+              project.wikiIndex,
+              file.filename,
+              file.content,
+            ),
+            wikiTitleMap: updateWikiTitleMap(
+              project.wikiTitleMap,
+              file.filename,
+              file.content,
+            ),
           });
         }
       } else {
@@ -349,7 +384,8 @@ const App: Component = () => {
   }
 
   const isWikiOpen = () =>
-    store.openFile()?.section === "wiki" && !store.openFile()?.filename.endsWith(".mmd");
+    store.openFile()?.section === "wiki" &&
+    !store.openFile()?.filename.endsWith(".mmd");
 
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
@@ -369,7 +405,7 @@ const App: Component = () => {
               ref={imageInputRef}
               type="file"
               accept="image/*"
-              style="display:none"
+              style={{ display: "none" }}
               onChange={handleImageFileChange}
             />
             <Toolbar
@@ -386,7 +422,9 @@ const App: Component = () => {
               fallback={
                 <Show
                   when={pendingCreate()}
-                  fallback={<div class="no-file">Select a chapter from the sidebar</div>}
+                  fallback={
+                    <div class="no-file">Select a chapter from the sidebar</div>
+                  }
                 >
                   <CreatePrompt
                     label={pendingCreate()!}
@@ -399,18 +437,20 @@ const App: Component = () => {
               <Show
                 when={!viewMarkdown()}
                 fallback={
-                  isDiagram()
-                    ? <DiagramSourceEditor
-                        content={store.openFile()!.content}
-                        onChange={handleChange}
-                        wikiTitles={wikiTitles()}
-                      />
-                    : <textarea
-                        class="markdown-source"
-                        value={store.openFile()?.content ?? ""}
-                        onInput={(e) => handleChange(e.currentTarget.value)}
-                        spellcheck={false}
-                      />
+                  isDiagram() ? (
+                    <DiagramSourceEditor
+                      content={store.openFile()!.content}
+                      onChange={handleChange}
+                      wikiTitles={wikiTitles()}
+                    />
+                  ) : (
+                    <textarea
+                      class="markdown-source"
+                      value={store.openFile()?.content ?? ""}
+                      onInput={(e) => handleChange(e.currentTarget.value)}
+                      spellcheck={false}
+                    />
+                  )
                 }
               >
                 <Show
@@ -420,14 +460,18 @@ const App: Component = () => {
                       fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
                       content={store.openFile()!.content}
                       onChange={handleChange}
-                      onWikiLinkClick={isWikiOpen() ? handleWikiLinkClick : undefined}
+                      onWikiLinkClick={
+                        isWikiOpen() ? handleWikiLinkClick : undefined
+                      }
                     />
                   }
                 >
                   <DiagramEditor
                     fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
                     content={store.openFile()!.content}
-                    lightTheme={["light", "scifi", "romance"].includes(appSettings().theme)}
+                    lightTheme={["light", "scifi", "romance"].includes(
+                      appSettings().theme,
+                    )}
                     onWikiLinkClick={handleWikiFileClick}
                     wikiTitleMap={wikiTitleMap()}
                   />
@@ -452,7 +496,12 @@ const App: Component = () => {
           currentFile={(() => {
             const f = store.openFile();
             if (!f) return null;
-            const dir = f.section === "manuscript" ? "manuscript" : f.section === "wiki" ? "wiki" : "exercises";
+            const dir =
+              f.section === "manuscript"
+                ? "manuscript"
+                : f.section === "wiki"
+                  ? "wiki"
+                  : "exercises";
             return `${dir}/${f.filename}`;
           })()}
         />
@@ -492,25 +541,31 @@ const App: Component = () => {
             const hasContents = pd.fileCount > 0;
             const title = pd.kind === "file" ? "Delete File" : "Delete Folder";
             const btnLabel = hasContents ? "Delete All" : "Delete";
-            const extra =
-              hasContents
-                ? `${pd.fileCount} additional file${pd.fileCount === 1 ? "" : "s"} will be deleted along with this folder.`
-                : null;
+            const extra = hasContents
+              ? `${pd.fileCount} additional file${pd.fileCount === 1 ? "" : "s"} will be deleted along with this folder.`
+              : null;
             return (
               <div class="modal-overlay" onClick={() => setPendingDelete(null)}>
                 <div class="modal-box" onClick={(e) => e.stopPropagation()}>
                   <h2 class="modal-title">{title}</h2>
                   <p class="modal-body">
-                    Are you sure you want to delete <strong>{displayName}</strong>?
+                    Are you sure you want to delete{" "}
+                    <strong>{displayName}</strong>?
                   </p>
                   <Show when={extra}>
                     <p class="modal-body modal-body-sub">{extra}</p>
                   </Show>
                   <div class="modal-actions">
-                    <button class="btn-secondary" onClick={() => setPendingDelete(null)}>
+                    <button
+                      class="btn-secondary"
+                      onClick={() => setPendingDelete(null)}
+                    >
                       Cancel
                     </button>
-                    <button class="btn-primary" onClick={() => handleConfirmDelete()}>
+                    <button
+                      class="btn-primary"
+                      onClick={() => handleConfirmDelete()}
+                    >
                       {btnLabel}
                     </button>
                   </div>

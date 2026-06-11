@@ -10,7 +10,15 @@
     "tauri": "tauri",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "typecheck": "tsc --noEmit",
+    "lint:ts": "eslint 'src/**/*.{ts,tsx}'",
+    "lint:fmt": "prettier --check 'src/**/*.{ts,tsx}'",
+    "lint:rs": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
+    "fmt": "prettier --write 'src/**/*.{ts,tsx}' && cargo fmt --manifest-path src-tauri/Cargo.toml",
+    "fmt:rs": "cargo fmt --manifest-path src-tauri/Cargo.toml",
+    "check": "npm run typecheck && npm run lint:ts && npm run lint:fmt && npm run lint:rs",
+    "prepare": "lefthook install"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.0",
@@ -34,8 +42,14 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^24.12.2",
     "@vitest/ui": "^4.1.5",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-solid": "^0.14.5",
     "happy-dom": "^20.9.0",
+    "lefthook": "^2.1.9",
+    "prettier": "^3.8.4",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.61.0",
     "vite": "^8.0.10",
     "vite-plugin-solid": "^2.11.12",
     "vitest": "^4.1.5"

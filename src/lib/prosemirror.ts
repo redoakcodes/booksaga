@@ -44,16 +44,19 @@ export const editorSchema = new Schema({
       {
         tag: "span[data-wikilink]",
         getAttrs(dom) {
-          return { target: (dom as HTMLElement).getAttribute("data-wikilink") ?? "" };
+          return {
+            target: (dom as HTMLElement).getAttribute("data-wikilink") ?? "",
+          };
         },
       },
     ],
   }),
-  marks: baseSchema.spec.marks
-    .addToEnd("strikethrough", {
-      toDOM(): DOMOutputSpec { return ["s", 0]; },
-      parseDOM: [{ tag: "s" }, { tag: "del" }],
-    })
+  marks: baseSchema.spec.marks.addToEnd("strikethrough", {
+    toDOM(): DOMOutputSpec {
+      return ["s", 0];
+    },
+    parseDOM: [{ tag: "s" }, { tag: "del" }],
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -66,7 +69,10 @@ function addWikilinkRule(md: MarkdownIt): void {
       if (block.type !== "inline" || !block.children) continue;
       const next: typeof block.children = [];
       for (const tok of block.children) {
-        if (tok.type !== "text") { next.push(tok); continue; }
+        if (tok.type !== "text") {
+          next.push(tok);
+          continue;
+        }
         let last = 0;
         let m: RegExpExecArray | null;
         WIKILINK_RE.lastIndex = 0;
@@ -98,7 +104,10 @@ function addSpanRule(md: MarkdownIt, re: RegExp, tokenName: string): void {
       if (block.type !== "inline" || !block.children) continue;
       const next: typeof block.children = [];
       for (const tok of block.children) {
-        if (tok.type !== "text") { next.push(tok); continue; }
+        if (tok.type !== "text") {
+          next.push(tok);
+          continue;
+        }
         let last = 0;
         let m: RegExpExecArray | null;
         re.lastIndex = 0;
@@ -152,7 +161,12 @@ const serializer = new MarkdownSerializer(
   },
   {
     ...defaultMarkdownSerializer.marks,
-    strikethrough: { open: "~~", close: "~~", mixable: true, expelEnclosingWhitespace: true },
+    strikethrough: {
+      open: "~~",
+      close: "~~",
+      mixable: true,
+      expelEnclosingWhitespace: true,
+    },
   },
 );
 
@@ -164,7 +178,9 @@ export function parseMarkdown(text: string) {
   return parser.parse(text);
 }
 
-export function serializeMarkdown(doc: ReturnType<typeof parseMarkdown>): string {
+export function serializeMarkdown(
+  doc: ReturnType<typeof parseMarkdown>,
+): string {
   return serializer.serialize(doc);
 }
 
@@ -196,11 +212,9 @@ function buildInputRules() {
   return inputRules({
     rules: [
       // Headings: # / ## / ### + space at start of empty block
-      textblockTypeInputRule(
-        /^(#{1,3})\s$/,
-        nodes.heading,
-        ([, hashes]) => ({ level: hashes.length }),
-      ),
+      textblockTypeInputRule(/^(#{1,3})\s$/, nodes.heading, ([, hashes]) => ({
+        level: hashes.length,
+      })),
       // Blockquote: "> "
       wrappingInputRule(/^\s*>\s$/, nodes.blockquote),
       // Bullet list: "- " / "* " / "+ "
@@ -209,7 +223,11 @@ function buildInputRules() {
       wrappingInputRule(/^\s*\d+\.\s$/, nodes.ordered_list),
       // Horizontal rule: "--- "
       new InputRule(/^---\s$/, (state, _match, start, end) => {
-        const tr = state.tr.replaceWith(start, end, nodes.horizontal_rule.create());
+        const tr = state.tr.replaceWith(
+          start,
+          end,
+          nodes.horizontal_rule.create(),
+        );
         if (!tr.doc.resolve(start + 1).nodeAfter) {
           tr.insert(start + 1, nodes.paragraph.create());
         }
@@ -251,8 +269,7 @@ export function makeEditorView(
     ],
   });
 
-  let view!: EditorView;
-  view = new EditorView(container, {
+  const view = new EditorView(container, {
     state,
     editable: () => editable,
     attributes: { spellcheck: nativeSpellCheck ? "true" : "false" },
@@ -264,7 +281,11 @@ export function makeEditorView(
       }
     },
     handleClickOn(_view, _pos, node, _nodePos, _event, direct) {
-      if (direct && node.type === editorSchema.nodes.wikilink && onWikiLinkClick) {
+      if (
+        direct &&
+        node.type === editorSchema.nodes.wikilink &&
+        onWikiLinkClick
+      ) {
         onWikiLinkClick(node.attrs.target as string);
         return true;
       }

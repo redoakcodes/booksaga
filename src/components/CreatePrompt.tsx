@@ -13,10 +13,10 @@ const CreatePrompt: Component<Props> = (props) => (
         Create <strong>"{props.label}"</strong> as a document?
       </p>
       <div class="create-prompt-actions">
-        <button class="btn-primary" onClick={props.onConfirm}>
+        <button class="btn-primary" onClick={() => props.onConfirm()}>
           Create
         </button>
-        <button class="btn-secondary" onClick={props.onDismiss}>
+        <button class="btn-secondary" onClick={() => props.onDismiss()}>
           Dismiss
         </button>
       </div>

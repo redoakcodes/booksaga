@@ -1,4 +1,10 @@
-import { createEffect, createSignal, For, Show, type Component } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  For,
+  Show,
+  type Component,
+} from "solid-js";
 import MarkdownIt from "markdown-it";
 import type { AiConfig } from "../lib/ai";
 import {
@@ -174,7 +180,10 @@ const SagaConsole: Component<Props> = (props) => {
           const updated = [...m];
           const last = updated[updated.length - 1];
           if (last?.kind === "saga" && last.streaming) {
-            updated[updated.length - 1] = { ...last, content: last.content + event.text };
+            updated[updated.length - 1] = {
+              ...last,
+              content: last.content + event.text,
+            };
           }
           return updated;
         });
@@ -191,7 +200,12 @@ const SagaConsole: Component<Props> = (props) => {
       case "tool_result":
         setMessages((m) => [
           ...m,
-          { kind: "tool_result", name: event.name, result: event.result, isError: event.isError },
+          {
+            kind: "tool_result",
+            name: event.name,
+            result: event.result,
+            isError: event.isError,
+          },
         ]);
         break;
 
@@ -252,15 +266,22 @@ const SagaConsole: Component<Props> = (props) => {
                     <div class="saga-tool-call">
                       <span class="saga-tool-icon">⚙</span>
                       <span class="saga-tool-name">{msg.name}</span>
-                      <span class="saga-tool-args">{summariseArgs(msg.args)}</span>
+                      <span class="saga-tool-args">
+                        {summariseArgs(msg.args)}
+                      </span>
                     </div>
                   );
                 }
                 if (msg.kind === "tool_result") {
                   return (
-                    <div class="saga-tool-result" classList={{ "saga-tool-result--error": msg.isError }}>
+                    <div
+                      class="saga-tool-result"
+                      classList={{ "saga-tool-result--error": msg.isError }}
+                    >
                       <span class="saga-tool-result-arrow">↳</span>
-                      <span class="saga-tool-result-text">{firstLine(msg.result)}</span>
+                      <span class="saga-tool-result-text">
+                        {firstLine(msg.result)}
+                      </span>
                     </div>
                   );
                 }
@@ -272,12 +293,25 @@ const SagaConsole: Component<Props> = (props) => {
             {(confirm) => (
               <div class="saga-confirm">
                 <p class="saga-confirm-label">
-                  Saga wants to <strong>{confirm().name.replace(/_/g, " ")}</strong>:
+                  Saga wants to{" "}
+                  <strong>{confirm().name.replace(/_/g, " ")}</strong>:
                 </p>
-                <pre class="saga-confirm-args">{summariseArgs(confirm().args)}</pre>
+                <pre class="saga-confirm-args">
+                  {summariseArgs(confirm().args)}
+                </pre>
                 <div class="saga-confirm-actions">
-                  <button class="btn-secondary" onClick={() => resolveConfirm(false)}>Cancel</button>
-                  <button class="btn-primary" onClick={() => resolveConfirm(true)}>Allow</button>
+                  <button
+                    class="btn-secondary"
+                    onClick={() => resolveConfirm(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="btn-primary"
+                    onClick={() => resolveConfirm(true)}
+                  >
+                    Allow
+                  </button>
                 </div>
               </div>
             )}
@@ -298,7 +332,11 @@ const SagaConsole: Component<Props> = (props) => {
           </div>
         </div>
       </div>
-      <button class="saga-tab" classList={{ open: props.open }} onClick={props.onToggle}>
+      <button
+        class="saga-tab"
+        classList={{ open: props.open }}
+        onClick={() => props.onToggle()}
+      >
         {props.open ? "Hide Saga" : "Saga Console"}
       </button>
     </>

@@ -1,4 +1,4 @@
-import { createSignal, type Component } from "solid-js";
+import { createSignal, untrack, type Component } from "solid-js";
 import type { AppSettings, Theme } from "../lib/settings";
 
 interface Props {
@@ -8,9 +8,15 @@ interface Props {
 }
 
 const SettingsModal: Component<Props> = (props) => {
-  const [theme, setTheme] = createSignal<Theme>(props.settings.theme);
-  const [apiKey, setApiKey] = createSignal(props.settings.anthropicApiKey ?? "");
-  const [braveKey, setBraveKey] = createSignal(props.settings.braveApiKey ?? "");
+  const [theme, setTheme] = createSignal<Theme>(
+    untrack(() => props.settings.theme),
+  );
+  const [apiKey, setApiKey] = createSignal(
+    untrack(() => props.settings.anthropicApiKey ?? ""),
+  );
+  const [braveKey, setBraveKey] = createSignal(
+    untrack(() => props.settings.braveApiKey ?? ""),
+  );
 
   function save() {
     props.onSave({
@@ -21,14 +27,16 @@ const SettingsModal: Component<Props> = (props) => {
   }
 
   return (
-    <div class="modal-overlay" onClick={props.onClose}>
+    <div class="modal-overlay" onClick={() => props.onClose()}>
       <div class="modal-box" onClick={(e) => e.stopPropagation()}>
         <h2 class="modal-title">Booksaga Settings</h2>
 
         <h3 class="settings-section-header">General</h3>
 
         <div class="new-modal-field">
-          <label class="new-modal-label" for="settings-theme">Theme</label>
+          <label class="new-modal-label" for="settings-theme">
+            Theme
+          </label>
           <select
             id="settings-theme"
             class="new-modal-input"
@@ -80,8 +88,12 @@ const SettingsModal: Component<Props> = (props) => {
         </div>
 
         <div class="modal-actions">
-          <button class="btn-secondary" onClick={props.onClose}>Close</button>
-          <button class="btn-primary" onClick={save}>Save</button>
+          <button class="btn-secondary" onClick={() => props.onClose()}>
+            Close
+          </button>
+          <button class="btn-primary" onClick={save}>
+            Save
+          </button>
         </div>
       </div>
     </div>

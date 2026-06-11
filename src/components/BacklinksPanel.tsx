@@ -50,7 +50,9 @@ const BacklinksPanel: Component<Props> = (props) => {
                 return (
                   <li
                     class={`backlinks-item${file ? "" : " backlinks-missing"}`}
-                    onClick={() => { if (file) props.onSelect(file); }}
+                    onClick={() => {
+                      if (file) props.onSelect(file);
+                    }}
                   >
                     {pageName.replace(/-/g, " ")}
                   </li>

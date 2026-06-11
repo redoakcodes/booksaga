@@ -34,11 +34,7 @@ describe("Editor component (real ProseMirror)", () => {
     const [key, setKey] = createSignal("manuscript:chapter1.md");
     const [content, setContent] = createSignal("# Chapter One");
     render(() => (
-      <Editor
-        fileKey={key()}
-        content={content()}
-        onChange={() => {}}
-      />
+      <Editor fileKey={key()} content={content()} onChange={() => {}} />
     ));
 
     expect(document.querySelector(".ProseMirror")).toBeTruthy();
@@ -50,7 +46,9 @@ describe("Editor component (real ProseMirror)", () => {
     });
 
     expect(document.querySelector(".ProseMirror")).toBeTruthy();
-    expect(document.querySelector(".ProseMirror")?.textContent).toContain("Chapter Two");
+    expect(document.querySelector(".ProseMirror")?.textContent).toContain(
+      "Chapter Two",
+    );
   });
 
   it("mounts correctly when shown via a reactive Show", () => {
@@ -75,7 +73,11 @@ describe("Editor component (real ProseMirror)", () => {
     render(() => (
       <Show when={outer()}>
         <Show when={inner()}>
-          <Editor fileKey="ms:ch1.md" content="Hello world" onChange={() => {}} />
+          <Editor
+            fileKey="ms:ch1.md"
+            content="Hello world"
+            onChange={() => {}}
+          />
         </Show>
       </Show>
     ));
@@ -86,6 +88,8 @@ describe("Editor component (real ProseMirror)", () => {
 
     expect(document.querySelector(".editor-container")).toBeTruthy();
     expect(document.querySelector(".ProseMirror")).toBeTruthy();
-    expect(document.querySelector(".ProseMirror")?.textContent).toContain("Hello world");
+    expect(document.querySelector(".ProseMirror")?.textContent).toContain(
+      "Hello world",
+    );
   });
 });

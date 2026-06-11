@@ -48,7 +48,10 @@ const DirItem: Component<{
         >
           <button
             class="new-modal-dir-expand"
-            onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpanded((v) => !v);
+            }}
           >
             {expanded() ? "▾" : "▸"}
           </button>
@@ -82,7 +85,8 @@ export type { EntryType };
 
 const WikiNewModal: Component<WikiNewModalProps> = (props) => {
   const [topType, setTopType] = createSignal<TopType>("file");
-  const [diagramSubtype, setDiagramSubtype] = createSignal<DiagramSubtype>("diagram");
+  const [diagramSubtype, setDiagramSubtype] =
+    createSignal<DiagramSubtype>("diagram");
   const [name, setName] = createSignal("");
   const [selectedDir, setSelectedDir] = createSignal(props.initialDir ?? "");
 
@@ -107,11 +111,13 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
   }
 
   return (
-    <div class="modal-overlay" onClick={props.onCancel}>
-      <div class="modal-box new-wiki-modal" onClick={(e) => e.stopPropagation()}>
+    <div class="modal-overlay" onClick={() => props.onCancel()}>
+      <div
+        class="modal-box new-wiki-modal"
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 class="modal-title">New Wiki Entry</h2>
         <form onSubmit={handleSubmit}>
-
           <div class="new-modal-type-toggle">
             <button
               type="button"
@@ -199,14 +205,17 @@ const WikiNewModal: Component<WikiNewModalProps> = (props) => {
           </div>
 
           <div class="modal-actions">
-            <button type="button" class="btn-secondary" onClick={props.onCancel}>
+            <button
+              type="button"
+              class="btn-secondary"
+              onClick={() => props.onCancel()}
+            >
               Cancel
             </button>
             <button type="submit" class="btn-primary" disabled={!name().trim()}>
               Create
             </button>
           </div>
-
         </form>
       </div>
     </div>

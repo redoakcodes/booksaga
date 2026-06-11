@@ -9,7 +9,10 @@ interface Props {
 // Characters that end a "word" for typeahead purposes
 const WORD_BOUNDARY = /[\[(\{\n\t :|>]/;
 
-function getCurrentWord(text: string, pos: number): { word: string; start: number } {
+function getCurrentWord(
+  text: string,
+  pos: number,
+): { word: string; start: number } {
   let start = pos;
   while (start > 0 && !WORD_BOUNDARY.test(text[start - 1])) start--;
   return { word: text.slice(start, pos), start };
@@ -24,7 +27,9 @@ const DiagramSourceEditor: Component<Props> = (props) => {
   const suggestions = createMemo(() => {
     const q = query().toLowerCase();
     if (q.length < 2) return [];
-    return props.wikiTitles.filter((t) => t.toLowerCase().startsWith(q)).slice(0, 8);
+    return props.wikiTitles
+      .filter((t) => t.toLowerCase().startsWith(q))
+      .slice(0, 8);
   });
 
   function updateDropdownPosition(ta: HTMLTextAreaElement, cursorPos: number) {
@@ -98,7 +103,10 @@ const DiagramSourceEditor: Component<Props> = (props) => {
             {(title, i) => (
               <div
                 class={`diagram-typeahead-item${i() === activeIdx() ? " active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); selectSuggestion(title); }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectSuggestion(title);
+                }}
               >
                 {title}
               </div>

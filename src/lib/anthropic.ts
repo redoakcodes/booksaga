@@ -59,7 +59,8 @@ export async function* drainChannel<T>(
     });
   }
 
-  if (error !== null) throw error instanceof Error ? error : new Error(String(error));
+  if (error !== null)
+    throw error instanceof Error ? error : new Error(String(error));
 }
 
 /** Stream a single Anthropic API request, yielding events as they arrive. */

@@ -12,7 +12,10 @@ vi.mock("../lib/prosemirror", () => ({
     pm.className = "ProseMirror";
     container.appendChild(pm);
     return {
-      destroy: vi.fn(() => { while (container.firstChild) container.removeChild(container.firstChild); }),
+      destroy: vi.fn(() => {
+        while (container.firstChild)
+          container.removeChild(container.firstChild);
+      }),
       focus: vi.fn(),
       state: {},
       updateState: vi.fn(),
@@ -20,7 +23,13 @@ vi.mock("../lib/prosemirror", () => ({
   }),
   editorSchema: {
     marks: { strong: {}, em: {}, code: {}, strikethrough: {} },
-    nodes: { heading: {}, paragraph: {}, bullet_list: {}, ordered_list: {}, blockquote: {} },
+    nodes: {
+      heading: {},
+      paragraph: {},
+      bullet_list: {},
+      ordered_list: {},
+      blockquote: {},
+    },
   },
   parseMarkdown: vi.fn(() => ({})),
   serializeMarkdown: vi.fn(() => ""),
@@ -49,9 +58,9 @@ import type { ProjectModel } from "../lib/project";
 // ---------------------------------------------------------------------------
 
 const fakeProject: ProjectModel = {
-  fs: { readFile: async () => null, writeFile: async () => {} } as any,
-  config: { project: { title: "Test Project", author: "" } } as any,
-  toc: { rootChapters: [] } as any,
+  fs: { readFile: async () => null, writeFile: async () => {} } as unknown,
+  config: { project: { title: "Test Project", author: "" } } as unknown,
+  toc: { rootChapters: [] } as unknown,
   chapters: [],
   wikiFiles: [],
   wikiDirs: [],

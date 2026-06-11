@@ -34,7 +34,8 @@ export function applyMark(markName: "strong" | "em" | "strikethrough") {
     const { $from } = selection;
     const text = $from.parent.textContent;
     const offset = $from.parentOffset;
-    let lo = offset, hi = offset;
+    let lo = offset,
+      hi = offset;
     while (lo > 0 && /\w/.test(text[lo - 1])) lo--;
     while (hi < text.length && /\w/.test(text[hi])) hi++;
 
@@ -45,7 +46,8 @@ export function applyMark(markName: "strong" | "em" | "strikethrough") {
     }
 
     const base = $from.start();
-    const from = base + lo, to = base + hi;
+    const from = base + lo,
+      to = base + hi;
     const tr = state.tr;
     if (doc.rangeHasMark(from, to, markType)) {
       tr.removeMark(from, to, markType);
@@ -64,7 +66,10 @@ export function applyHeading(level: 1 | 2 | 3) {
   withView(({ state, dispatch }) => {
     const { $from } = state.selection;
     const node = $from.parent;
-    if (node.type === editorSchema.nodes.heading && node.attrs.level === level) {
+    if (
+      node.type === editorSchema.nodes.heading &&
+      node.attrs.level === level
+    ) {
       setBlockType(editorSchema.nodes.paragraph)(state, dispatch);
     } else {
       setBlockType(editorSchema.nodes.heading, { level })(state, dispatch);
@@ -117,6 +122,8 @@ export function applyInlineCode() {
       return;
     }
     const tr = state.tr.insertText("``");
-    dispatch(tr.setSelection(TextSelection.create(tr.doc, tr.selection.from - 1)));
+    dispatch(
+      tr.setSelection(TextSelection.create(tr.doc, tr.selection.from - 1)),
+    );
   });
 }

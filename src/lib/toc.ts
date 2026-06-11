@@ -37,7 +37,9 @@ function parseItem(text: string): { label: string; path: string | null } {
 
 function parseLines(lines: string[]): TocNode[] {
   const root: TocNode[] = [];
-  const stack: Array<{ indent: number; children: TocNode[] }> = [{ indent: -1, children: root }];
+  const stack: Array<{ indent: number; children: TocNode[] }> = [
+    { indent: -1, children: root },
+  ];
 
   for (const line of lines) {
     const m = NESTED_LIST_RE.exec(line);
@@ -45,7 +47,8 @@ function parseLines(lines: string[]): TocNode[] {
     const indent = m[1].length;
     const { label, path } = parseItem(m[2]);
     const node: TocNode = { label, path, children: [] };
-    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
+    while (stack.length > 1 && stack[stack.length - 1].indent >= indent)
+      stack.pop();
     stack[stack.length - 1].children.push(node);
     stack.push({ indent, children: node.children });
   }
@@ -70,7 +73,8 @@ function serializeNode(node: TocNode, indent: number): string {
         ? node.path
         : `[${node.label}](${node.path})`;
   const lines = [" ".repeat(indent) + `1. ${item}`];
-  for (const child of node.children) lines.push(serializeNode(child, indent + 3));
+  for (const child of node.children)
+    lines.push(serializeNode(child, indent + 3));
   return lines.join("\n");
 }
 
@@ -125,7 +129,11 @@ export class TocParser {
 
   addChapter(filename: string, label?: string): void {
     if (!dfsFilenames(this.nodes).includes(filename)) {
-      this.nodes.push({ label: label ?? filename, path: filename, children: [] });
+      this.nodes.push({
+        label: label ?? filename,
+        path: filename,
+        children: [],
+      });
     }
   }
 
@@ -150,9 +158,7 @@ export class TocParser {
   /** Reorder root-level entries by filename, preserving labels and children. */
   reorder(filenames: string[]): void {
     const byFilename = new Map(
-      this.nodes
-        .filter((n) => n.path)
-        .map((n) => [n.path!.split("#")[0], n]),
+      this.nodes.filter((n) => n.path).map((n) => [n.path!.split("#")[0], n]),
     );
     this.nodes = filenames.map(
       (f) => byFilename.get(f) ?? { label: f, path: f, children: [] },

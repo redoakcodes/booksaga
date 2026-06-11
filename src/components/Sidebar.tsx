@@ -56,7 +56,11 @@ const Sidebar: Component<Props> = (props) => {
         <Show when={store.activeSection() === "manuscript"}>
           <TocList
             nodes={project()?.toc.tocNodes ?? []}
-            activeFilename={store.openFile()?.section === "manuscript" ? store.openFile()?.filename : null}
+            activeFilename={
+              store.openFile()?.section === "manuscript"
+                ? store.openFile()?.filename
+                : null
+            }
             pendingCreateLabel={props.pendingCreateLabel}
             onSelect={(filename) => props.onFileSelect("manuscript", filename)}
             onPlaceholderClick={props.onPlaceholderClick}
@@ -70,7 +74,11 @@ const Sidebar: Component<Props> = (props) => {
             files={project()?.wikiFiles ?? []}
             diagramFiles={project()?.diagramFiles ?? []}
             dirs={project()?.wikiDirs ?? []}
-            activeFilename={store.openFile()?.section === "wiki" ? store.openFile()?.filename : null}
+            activeFilename={
+              store.openFile()?.section === "wiki"
+                ? store.openFile()?.filename
+                : null
+            }
             onSelect={(path) => props.onFileSelect("wiki", path)}
             onNew={props.onNewWikiEntry}
             onDelete={props.onDeleteWikiEntry}
@@ -79,7 +87,10 @@ const Sidebar: Component<Props> = (props) => {
 
         <Show when={store.activeSection() === "exercises"}>
           <ul class="file-list">
-            <For each={project()?.exerciseFiles ?? []} fallback={<li class="file-empty">No files</li>}>
+            <For
+              each={project()?.exerciseFiles ?? []}
+              fallback={<li class="file-empty">No files</li>}
+            >
               {(filename) => (
                 <li
                   class={`file-item ${isActive(filename) ? "active" : ""}`}

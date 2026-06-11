@@ -49,11 +49,18 @@ export async function loadConfig(fs: IFileSystem): Promise<Config> {
   return parseConfig(text);
 }
 
-export async function saveConfig(fs: IFileSystem, config: Config): Promise<void> {
+export async function saveConfig(
+  fs: IFileSystem,
+  config: Config,
+): Promise<void> {
   const data: Record<string, unknown> = {
     project: config.project,
     llm: { model: config.llm.model },
   };
-  if (config.llm.apiKey) data.llm = { ...(data.llm as object), apiKey: config.llm.apiKey };
-  await fs.writeFile([CONFIG_DIR, CONFIG_FILE], JSON.stringify(data, null, 2) + "\n");
+  if (config.llm.apiKey)
+    data.llm = { ...(data.llm as object), apiKey: config.llm.apiKey };
+  await fs.writeFile(
+    [CONFIG_DIR, CONFIG_FILE],
+    JSON.stringify(data, null, 2) + "\n",
+  );
 }

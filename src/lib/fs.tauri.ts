@@ -1,6 +1,11 @@
 /** Tauri filesystem backend — native read/write via tauri-plugin-fs. */
 
-import { readTextFile, writeTextFile, mkdir, remove } from "@tauri-apps/plugin-fs";
+import {
+  readTextFile,
+  writeTextFile,
+  mkdir,
+  remove,
+} from "@tauri-apps/plugin-fs";
 import { open } from "@tauri-apps/plugin-dialog";
 import { join } from "@tauri-apps/api/path";
 import type { IFileSystem } from "./filesystem";
@@ -34,8 +39,12 @@ export class TauriFileSystem implements IFileSystem {
     await writeTextFile(filePath, content);
 
     const relPath = pathParts.join("/");
-    const label = (pathParts.at(-1) ?? "").replace(/\.(md|mmd)$/, "").replace(/[-_]/g, " ");
-    await gitCommitFile(this.rootPath, relPath, `save: ${label}`).catch(() => {});
+    const label = (pathParts.at(-1) ?? "")
+      .replace(/\.(md|mmd)$/, "")
+      .replace(/[-_]/g, " ");
+    await gitCommitFile(this.rootPath, relPath, `save: ${label}`).catch(
+      () => {},
+    );
   }
 
   async deleteFile(pathParts: string[]): Promise<void> {

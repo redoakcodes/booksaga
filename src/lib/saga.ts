@@ -1,5 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import { streamAnthropicRequest, type AnthropicMessage, type ContentBlock } from "./anthropic";
+import {
+  streamAnthropicRequest,
+  type AnthropicMessage,
+  type ContentBlock,
+} from "./anthropic";
 import type { AiConfig } from "./ai";
 import type { ProjectModel } from "./project";
 import { MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR } from "./project";
@@ -23,16 +27,34 @@ Rules:
 
 export type AgentEvent =
   | { type: "text"; text: string }
-  | { type: "tool_call"; id: string; name: string; args: Record<string, unknown> }
+  | {
+      type: "tool_call";
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }
   | { type: "tool_result"; name: string; result: string; isError: boolean }
   | { type: "done" };
 
-export type ConfirmCallback = (toolName: string, args: Record<string, unknown>) => Promise<boolean>;
+export type ConfirmCallback = (
+  toolName: string,
+  args: Record<string, unknown>,
+) => Promise<boolean>;
 
 type ApiContentBlock =
   | { type: "text"; text: string }
-  | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; tool_use_id: string; content: string; is_error?: boolean };
+  | {
+      type: "tool_use";
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    }
+  | {
+      type: "tool_result";
+      tool_use_id: string;
+      content: string;
+      is_error?: boolean;
+    };
 
 export type ApiMessage =
   | { role: "user"; content: string | ApiContentBlock[] }
@@ -56,12 +78,16 @@ const WRITE_TOOLS = new Set(["create_wiki_page", "edit_wiki_page"]);
 
 const SEARCH_TOOL: ToolDefinition = {
   name: "web_search",
-  description: "Search the web using Brave Search. Returns titles, URLs, and snippets. Use this to look up facts, research topics, or find reference material for the writer.",
+  description:
+    "Search the web using Brave Search. Returns titles, URLs, and snippets. Use this to look up facts, research topics, or find reference material for the writer.",
   input_schema: {
     type: "object",
     properties: {
       query: { type: "string", description: "Search query" },
-      count: { type: "number", description: "Number of results to return (default 5, max 10)" },
+      count: {
+        type: "number",
+        description: "Number of results to return (default 5, max 10)",
+      },
     },
     required: ["query"],
   },
@@ -75,10 +101,13 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
   },
   {
     name: "read_wiki_page",
-    description: "Read the contents of a wiki page by name (fuzzy matched on filename stem).",
+    description:
+      "Read the contents of a wiki page by name (fuzzy matched on filename stem).",
     input_schema: {
       type: "object",
-      properties: { name: { type: "string", description: "Page name or filename stem" } },
+      properties: {
+        name: { type: "string", description: "Page name or filename stem" },
+      },
       required: ["name"],
     },
   },
@@ -92,7 +121,9 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     description: "Read a writing exercise file by name (fuzzy matched).",
     input_schema: {
       type: "object",
-      properties: { name: { type: "string", description: "Exercise filename or stem" } },
+      properties: {
+        name: { type: "string", description: "Exercise filename or stem" },
+      },
       required: ["name"],
     },
   },
@@ -102,9 +133,18 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     input_schema: {
       type: "object",
       properties: {
-        chapter: { type: "string", description: "Chapter filename or partial name (fuzzy matched)" },
-        start_line: { type: "number", description: "First line to read, 1-indexed (default 1)" },
-        end_line: { type: "number", description: "Last line to read, inclusive (default 50)" },
+        chapter: {
+          type: "string",
+          description: "Chapter filename or partial name (fuzzy matched)",
+        },
+        start_line: {
+          type: "number",
+          description: "First line to read, 1-indexed (default 1)",
+        },
+        end_line: {
+          type: "number",
+          description: "Last line to read, inclusive (default 50)",
+        },
       },
       required: ["chapter"],
     },
@@ -115,20 +155,34 @@ const TOOL_DEFINITIONS: ToolDefinition[] = [
     input_schema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Page filename without .md extension" },
-        content: { type: "string", description: "Full markdown content for the page" },
-        section: { type: "string", description: "Subfolder within wiki/ — e.g. 'characters', 'locations'" },
+        name: {
+          type: "string",
+          description: "Page filename without .md extension",
+        },
+        content: {
+          type: "string",
+          description: "Full markdown content for the page",
+        },
+        section: {
+          type: "string",
+          description:
+            "Subfolder within wiki/ — e.g. 'characters', 'locations'",
+        },
       },
       required: ["name", "content"],
     },
   },
   {
     name: "edit_wiki_page",
-    description: "Edit an existing wiki page by replacing specific text. Requires writer confirmation.",
+    description:
+      "Edit an existing wiki page by replacing specific text. Requires writer confirmation.",
     input_schema: {
       type: "object",
       properties: {
-        name: { type: "string", description: "Page name or filename stem (fuzzy matched)" },
+        name: {
+          type: "string",
+          description: "Page name or filename stem (fuzzy matched)",
+        },
         old_text: { type: "string", description: "Exact text to replace" },
         new_text: { type: "string", description: "Replacement text" },
       },
@@ -145,40 +199,65 @@ function fuzzyFindWiki(name: string, model: ProjectModel): string | undefined {
   const needle = name.toLowerCase().replace(/\s+/g, "-").replace(/\.md$/, "");
   return model.wikiFiles.find((f) => {
     const stem = f.replace(/\.md$/, "").toLowerCase();
-    return stem === needle || stem.endsWith("/" + needle) || stem.includes(needle);
+    return (
+      stem === needle || stem.endsWith("/" + needle) || stem.includes(needle)
+    );
   });
 }
 
 function listWikiPages(model: ProjectModel): string {
   if (model.wikiFiles.length === 0) return "No wiki pages yet.";
-  return "Wiki pages:\n" + model.wikiFiles.map((f) => `  - ${f.replace(/\.md$/, "")}`).join("\n");
+  return (
+    "Wiki pages:\n" +
+    model.wikiFiles.map((f) => `  - ${f.replace(/\.md$/, "")}`).join("\n")
+  );
 }
 
-async function readWikiPage(name: string, model: ProjectModel): Promise<string> {
+async function readWikiPage(
+  name: string,
+  model: ProjectModel,
+): Promise<string> {
   const match = fuzzyFindWiki(name, model);
   if (!match) {
-    const avail = model.wikiFiles.slice(0, 10).map((f) => f.replace(/\.md$/, "")).join(", ");
+    const avail = model.wikiFiles
+      .slice(0, 10)
+      .map((f) => f.replace(/\.md$/, ""))
+      .join(", ");
     return `Wiki page '${name}' not found. Available: ${avail || "none"}`;
   }
-  return (await model.fs.readFile(WIKI_DIR, ...match.split("/"))) ?? `Could not read ${match}.`;
+  return (
+    (await model.fs.readFile(WIKI_DIR, ...match.split("/"))) ??
+    `Could not read ${match}.`
+  );
 }
 
 function listExerciseFiles(model: ProjectModel): string {
   if (model.exerciseFiles.length === 0) return "No exercise files yet.";
-  return "Exercise files:\n" + model.exerciseFiles.map((f) => `  - ${f}`).join("\n");
+  return (
+    "Exercise files:\n" + model.exerciseFiles.map((f) => `  - ${f}`).join("\n")
+  );
 }
 
-async function readExerciseFile(name: string, model: ProjectModel): Promise<string> {
+async function readExerciseFile(
+  name: string,
+  model: ProjectModel,
+): Promise<string> {
   const needle = name.toLowerCase().replace(/\.md$/, "");
   const match = model.exerciseFiles.find((f) => {
     const stem = f.replace(/\.md$/, "").toLowerCase();
     return stem === needle || stem.includes(needle);
   });
   if (!match) {
-    const avail = model.exerciseFiles.slice(0, 10).map((f) => f.replace(/\.md$/, "")).join(", ");
+    const avail = model.exerciseFiles
+      .slice(0, 10)
+      .map((f) => f.replace(/\.md$/, ""))
+      .join(", ");
     return `Exercise file '${name}' not found. Available: ${avail || "none"}`;
   }
-  return (await model.fs.readFile(EXERCISES_DIR, ...match.split("/"))) ?? `Could not read ${match}.`;
+  return (
+    (await model.fs.readFile(EXERCISES_DIR, ...match.split("/"))) ??
+    `Could not read ${match}.`
+  );
 }
 
 async function readManuscriptExcerpt(
@@ -187,10 +266,17 @@ async function readManuscriptExcerpt(
   endLine: number,
   model: ProjectModel,
 ): Promise<string> {
-  const needle = chapter.toLowerCase().replace(/\.md$/, "").replace(/\s+/g, "-");
+  const needle = chapter
+    .toLowerCase()
+    .replace(/\.md$/, "")
+    .replace(/\s+/g, "-");
   const match = model.chapters.find((f) => {
     const stem = f.replace(/\.md$/, "").toLowerCase();
-    return stem === needle || stem.includes(needle) || f.toLowerCase() === chapter.toLowerCase();
+    return (
+      stem === needle ||
+      stem.includes(needle) ||
+      f.toLowerCase() === chapter.toLowerCase()
+    );
   });
   if (!match) {
     const avail = model.chapters.slice(0, 10).join(", ");
@@ -210,7 +296,11 @@ async function createWikiPage(
   section: string,
   model: ProjectModel,
 ): Promise<string> {
-  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+  const slug =
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".md";
   const parts = section ? [WIKI_DIR, section, slug] : [WIKI_DIR, slug];
   await model.fs.writeFile(parts, content);
   return `Created ${parts.join("/")}.`;
@@ -228,7 +318,10 @@ async function editWikiPage(
   if (!content) return `Could not read ${match}.`;
   if (!content.includes(oldText))
     return `Text to replace not found in '${match}'. Check that old_text exactly matches the file content.`;
-  await model.fs.writeFile([WIKI_DIR, ...match.split("/")], content.replace(oldText, newText));
+  await model.fs.writeFile(
+    [WIKI_DIR, ...match.split("/")],
+    content.replace(oldText, newText),
+  );
   return `Updated ${match}.`;
 }
 
@@ -242,7 +335,10 @@ async function executeTool(
     switch (name) {
       case "web_search": {
         if (!config.braveApiKey)
-          return ["No Brave Search API key configured. Add your key in Settings.", true];
+          return [
+            "No Brave Search API key configured. Add your key in Settings.",
+            true,
+          ];
         const result = await invoke<string>("brave_search", {
           query: args.query as string,
           count: Math.min((args.count as number) ?? 5, 10),
@@ -299,7 +395,10 @@ async function executeTool(
         return [`Unknown tool: ${name}`, true];
     }
   } catch (e) {
-    return [`Tool '${name}' failed: ${e instanceof Error ? e.message : String(e)}`, true];
+    return [
+      `Tool '${name}' failed: ${e instanceof Error ? e.message : String(e)}`,
+      true,
+    ];
   }
 }
 
@@ -315,7 +414,9 @@ export async function* streamSaga(
   onConfirm: ConfirmCallback,
 ): AsyncGenerator<AgentEvent> {
   if (!config.anthropicApiKey) {
-    throw new Error("No Anthropic API key configured. Add your key in Menu → Settings.");
+    throw new Error(
+      "No Anthropic API key configured. Add your key in Menu → Settings.",
+    );
   }
 
   let system = SYSTEM_PROMPT_BASE;
@@ -362,7 +463,9 @@ export async function* streamSaga(
     }
     apiMessages.push({ role: "assistant", content: assistantContent });
 
-    const toolUses = finalMsg.content.filter((b): b is Required<ContentBlock> => b.type === "tool_use");
+    const toolUses = finalMsg.content.filter(
+      (b): b is Required<ContentBlock> => b.type === "tool_use",
+    );
     if (toolUses.length === 0) break;
 
     // Execute each tool call
@@ -387,7 +490,12 @@ export async function* streamSaga(
       }
 
       yield { type: "tool_result", name: tool.name, result, isError };
-      toolResults.push({ type: "tool_result", tool_use_id: tool.id, content: result, is_error: isError });
+      toolResults.push({
+        type: "tool_result",
+        tool_use_id: tool.id,
+        content: result,
+        is_error: isError,
+      });
     }
 
     apiMessages.push({ role: "user", content: toolResults });

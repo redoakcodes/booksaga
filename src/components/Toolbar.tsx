@@ -1,4 +1,10 @@
-import { createEffect, createSignal, onCleanup, Show, type Component } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  onCleanup,
+  Show,
+  type Component,
+} from "solid-js";
 import {
   applyMark,
   applyHeading,
@@ -31,7 +37,8 @@ const Toolbar: Component<Props> = (props) => {
   createEffect(() => {
     const which = openMenu();
     if (!which) return;
-    const ref = which === "menu" ? menuRef : which === "format" ? formatRef : insertRef;
+    const ref =
+      which === "menu" ? menuRef : which === "format" ? formatRef : insertRef;
     const handler = (e: MouseEvent) => {
       if (!ref.contains(e.target as Node)) setOpenMenu(null);
     };
@@ -54,7 +61,6 @@ const Toolbar: Component<Props> = (props) => {
   return (
     <div class="toolbar">
       <div class="toolbar-left">
-
         {/* ── Menu ── */}
         <div class="toolbar-menu" ref={menuRef}>
           <button
@@ -66,22 +72,40 @@ const Toolbar: Component<Props> = (props) => {
           </button>
           <Show when={openMenu() === "menu"}>
             <div class="toolbar-dropdown">
-              <button class="toolbar-menu-item" onClick={() => run(() => props.onNew?.())}>
+              <button
+                class="toolbar-menu-item"
+                onClick={() => {
+                  setOpenMenu(null);
+                  props.onNew?.();
+                }}
+              >
                 <span class="toolbar-item-label">New</span>
               </button>
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onSave)}>
+              <button
+                class="toolbar-menu-item toolbar-fmt-item"
+                onClick={() => run(props.onSave)}
+              >
                 <span class="toolbar-item-label">Save</span>
                 <span class="toolbar-item-hint">{modKeyLabel}S</span>
               </button>
               <div class="toolbar-divider" />
-              <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(props.onToggleView)}>
+              <button
+                class="toolbar-menu-item toolbar-fmt-item"
+                onClick={() => run(props.onToggleView)}
+              >
                 <span class="toolbar-item-label">
                   {props.viewMarkdown ? "View Formatted" : "View Markdown"}
                 </span>
                 <span class="toolbar-item-hint">{modKeyLabel}E</span>
               </button>
               <div class="toolbar-divider" />
-              <button class="toolbar-menu-item" onClick={() => run(() => props.onSettings?.())}>
+              <button
+                class="toolbar-menu-item"
+                onClick={() => {
+                  setOpenMenu(null);
+                  props.onSettings?.();
+                }}
+              >
                 <span class="toolbar-item-label">Settings</span>
               </button>
             </div>
@@ -100,7 +124,13 @@ const Toolbar: Component<Props> = (props) => {
             </button>
             <Show when={openMenu() === "insert"}>
               <div class="toolbar-dropdown">
-                <button class="toolbar-menu-item" onClick={() => run(() => props.onInsertImage?.())}>
+                <button
+                  class="toolbar-menu-item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    props.onInsertImage?.();
+                  }}
+                >
                   <span class="toolbar-item-label">Image</span>
                 </button>
               </div>
@@ -120,66 +150,97 @@ const Toolbar: Component<Props> = (props) => {
             </button>
             <Show when={openMenu() === "format"}>
               <div class="toolbar-dropdown">
-
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strong"))}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyMark("strong"))}
+                >
                   <span class="toolbar-item-label fmt-bold">Bold</span>
                   <span class="toolbar-item-hint">**text**</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("em"))}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyMark("em"))}
+                >
                   <span class="toolbar-item-label fmt-italic">Italic</span>
                   <span class="toolbar-item-hint">*text*</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyMark("strikethrough"))}>
-                  <span class="toolbar-item-label fmt-strike">Strikethrough</span>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyMark("strikethrough"))}
+                >
+                  <span class="toolbar-item-label fmt-strike">
+                    Strikethrough
+                  </span>
                   <span class="toolbar-item-hint">~~text~~</span>
                 </button>
 
                 <div class="toolbar-divider" />
 
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(1))}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyHeading(1))}
+                >
                   <span class="toolbar-item-label">Heading 1</span>
                   <span class="toolbar-item-hint">#</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(2))}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyHeading(2))}
+                >
                   <span class="toolbar-item-label">Heading 2</span>
                   <span class="toolbar-item-hint">##</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(() => applyHeading(3))}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(() => applyHeading(3))}
+                >
                   <span class="toolbar-item-label">Heading 3</span>
                   <span class="toolbar-item-hint">###</span>
                 </button>
 
                 <div class="toolbar-divider" />
 
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBulletList)}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(applyBulletList)}
+                >
                   <span class="toolbar-item-label">Bullets</span>
                   <span class="toolbar-item-hint">-</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyOrderedList)}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(applyOrderedList)}
+                >
                   <span class="toolbar-item-label">List</span>
                   <span class="toolbar-item-hint">1.</span>
                 </button>
 
                 <div class="toolbar-divider" />
 
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyBlockquote)}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(applyBlockquote)}
+                >
                   <span class="toolbar-item-label">Quote</span>
                   <span class="toolbar-item-hint">&gt;</span>
                 </button>
-                <button class="toolbar-menu-item toolbar-fmt-item" onClick={() => run(applyInlineCode)}>
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => run(applyInlineCode)}
+                >
                   <span class="toolbar-item-label">Code</span>
                   <span class="toolbar-item-hint">`</span>
                 </button>
-
               </div>
             </Show>
           </div>
         </Show>
-
       </div>
 
       <div class="toolbar-right">
-        <button class="toolbar-icon-btn" title="Help">?</button>
+        <button class="toolbar-icon-btn" title="Help">
+          ?
+        </button>
       </div>
     </div>
   );

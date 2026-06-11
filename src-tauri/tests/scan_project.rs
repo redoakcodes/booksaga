@@ -25,7 +25,11 @@ fn scan_empty_project_returns_empty_lists() {
 #[test]
 fn scan_reads_config_and_toc() {
     let dir = tempfile::tempdir().unwrap();
-    write(&dir, ".booksaga/config.json", r#"{"project":{"title":"Test"}}"#);
+    write(
+        &dir,
+        ".booksaga/config.json",
+        r#"{"project":{"title":"Test"}}"#,
+    );
     write(&dir, "manuscript/toc.md", "# Table of Contents\n");
 
     let result = scan_project(dir.path().to_str().unwrap()).unwrap();
@@ -49,11 +53,17 @@ fn scan_lists_manuscript_chapters_excluding_toc() {
 #[test]
 fn scan_lists_wiki_files_with_subdirectory_paths() {
     let dir = tempfile::tempdir().unwrap();
-    write(&dir, "wiki/characters/elara.md", "# Elara\n\nKnows [[City]].");
+    write(
+        &dir,
+        "wiki/characters/elara.md",
+        "# Elara\n\nKnows [[City]].",
+    );
     write(&dir, "wiki/locations/city.md", "# City\n");
 
     let result = scan_project(dir.path().to_str().unwrap()).unwrap();
-    assert!(result.wiki_files.contains(&"characters/elara.md".to_string()));
+    assert!(result
+        .wiki_files
+        .contains(&"characters/elara.md".to_string()));
     assert!(result.wiki_files.contains(&"locations/city.md".to_string()));
 }
 
@@ -83,7 +93,9 @@ fn scan_lists_exercise_files() {
     write(&dir, "exercises/2024-01-01-12-00-00.md", "");
 
     let result = scan_project(dir.path().to_str().unwrap()).unwrap();
-    assert!(result.exercise_files.contains(&"2024-01-01-12-00-00.md".to_string()));
+    assert!(result
+        .exercise_files
+        .contains(&"2024-01-01-12-00-00.md".to_string()));
 }
 
 #[test]
@@ -92,7 +104,11 @@ fn scan_returns_wiki_contents_for_index_building() {
     write(&dir, "wiki/elara.md", "# Elara\n\nKnows [[City]].");
 
     let result = scan_project(dir.path().to_str().unwrap()).unwrap();
-    let entry = result.wiki_contents.iter().find(|(f, _)| f == "elara.md").unwrap();
+    let entry = result
+        .wiki_contents
+        .iter()
+        .find(|(f, _)| f == "elara.md")
+        .unwrap();
     assert!(entry.1.contains("[[City]]"));
 }
 
@@ -103,7 +119,15 @@ fn scan_results_are_sorted() {
     write(&dir, "manuscript/a-chapter.md", "");
 
     let result = scan_project(dir.path().to_str().unwrap()).unwrap();
-    let a = result.chapters.iter().position(|f| f == "a-chapter.md").unwrap();
-    let z = result.chapters.iter().position(|f| f == "z-chapter.md").unwrap();
+    let a = result
+        .chapters
+        .iter()
+        .position(|f| f == "a-chapter.md")
+        .unwrap();
+    let z = result
+        .chapters
+        .iter()
+        .position(|f| f == "z-chapter.md")
+        .unwrap();
     assert!(a < z);
 }

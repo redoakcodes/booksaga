@@ -25,7 +25,8 @@ const Welcome: Component = () => {
 
   async function pickFs() {
     const fs = await pickTauriDirectory();
-    if (!fs) throw Object.assign(new Error("Cancelled"), { name: "AbortError" });
+    if (!fs)
+      throw Object.assign(new Error("Cancelled"), { name: "AbortError" });
     return fs;
   }
 
@@ -35,28 +36,47 @@ const Welcome: Component = () => {
         <h1>BookSaga</h1>
         <p>A writing tool for long-form projects.</p>
         <div class="welcome-actions">
-          <button class="btn-primary" disabled={loading()} onClick={() => run(async () => {
-            const fs = await pickFs();
-            await gitInit(fs.rootPath).catch(() => {});
-            store.setProject(await loadProject(fs));
-          })}>
+          <button
+            class="btn-primary"
+            disabled={loading()}
+            onClick={() =>
+              run(async () => {
+                const fs = await pickFs();
+                await gitInit(fs.rootPath).catch(() => {});
+                store.setProject(await loadProject(fs));
+              })
+            }
+          >
             {loading() ? "Opening…" : "Open Project"}
           </button>
-          <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
-            const fs = await pickFs();
-            await gitInit(fs.rootPath).catch(() => {});
-            await initProject(fs, "My Book", "");
-            store.setProject(await loadProject(fs));
-          })}>
+          <button
+            class="btn-secondary"
+            disabled={loading()}
+            onClick={() =>
+              run(async () => {
+                const fs = await pickFs();
+                await gitInit(fs.rootPath).catch(() => {});
+                await initProject(fs, "My Book", "");
+                store.setProject(await loadProject(fs));
+              })
+            }
+          >
             New Project
           </button>
-          <button class="btn-secondary" disabled={loading()} onClick={() => run(async () => {
-            const fs = await pickFs();
-            await gitInit(fs.rootPath).catch(() => {});
-            const hasConfig = await fs.readFile(".booksaga", "config.json") !== null;
-            if (!hasConfig) await initProject(fs, "My Book", "");
-            store.setProject(await loadProject(fs));
-          })}>
+          <button
+            class="btn-secondary"
+            disabled={loading()}
+            onClick={() =>
+              run(async () => {
+                const fs = await pickFs();
+                await gitInit(fs.rootPath).catch(() => {});
+                const hasConfig =
+                  (await fs.readFile(".booksaga", "config.json")) !== null;
+                if (!hasConfig) await initProject(fs, "My Book", "");
+                store.setProject(await loadProject(fs));
+              })
+            }
+          >
             Import
           </button>
         </div>

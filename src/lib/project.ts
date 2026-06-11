@@ -32,7 +32,10 @@ interface ScannedProject {
   exerciseFiles: string[];
 }
 
-function assembleProject(fs: IFileSystem, scanned: ScannedProject): ProjectModel {
+function assembleProject(
+  fs: IFileSystem,
+  scanned: ScannedProject,
+): ProjectModel {
   const config = parseConfig(scanned.configJson ?? null);
   const toc = new TocParser(scanned.tocText ?? TOC_TEMPLATE);
   const chapters = toc.orderedChapters(scanned.chapters);
@@ -79,7 +82,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
   const scanFs = fs as ScanCapableFileSystem;
   const config = await loadConfig(fs);
 
-  const tocText = await fs.readFile(MANUSCRIPT_DIR, "toc.md") ?? TOC_TEMPLATE;
+  const tocText = (await fs.readFile(MANUSCRIPT_DIR, "toc.md")) ?? TOC_TEMPLATE;
   const toc = new TocParser(tocText);
 
   const allManuscriptFiles = await scanFs.listMarkdownFiles(MANUSCRIPT_DIR);
@@ -103,7 +106,18 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
     if (h1) wikiTitleMap.set(h1, filename);
   }
 
-  return { fs, config, toc, chapters, wikiFiles, wikiDirs, diagramFiles, exerciseFiles, wikiIndex, wikiTitleMap };
+  return {
+    fs,
+    config,
+    toc,
+    chapters,
+    wikiFiles,
+    wikiDirs,
+    diagramFiles,
+    exerciseFiles,
+    wikiIndex,
+    wikiTitleMap,
+  };
 }
 
 export async function readFile(
@@ -134,16 +148,23 @@ export async function initProject(
 ): Promise<ProjectModel> {
   await fs.writeFile(
     [".booksaga", "config.json"],
-    JSON.stringify({ project: { title, author }, llm: { model: "claude-opus-4-7" } }, null, 2) + "\n",
+    JSON.stringify(
+      { project: { title, author }, llm: { model: "claude-opus-4-7" } },
+      null,
+      2,
+    ) + "\n",
   );
-  if (await fs.readFile(MANUSCRIPT_DIR, "toc.md") === null) {
+  if ((await fs.readFile(MANUSCRIPT_DIR, "toc.md")) === null) {
     await fs.writeFile([MANUSCRIPT_DIR, "toc.md"], TOC_TEMPLATE);
   }
   return loadProject(fs);
 }
 
 /** Create a new chapter file and add it to the TOC. Returns the new filename. */
-export async function createChapter(model: ProjectModel, title: string): Promise<string> {
+export async function createChapter(
+  model: ProjectModel,
+  title: string,
+): Promise<string> {
   const filename = titleToFilename(title);
   await model.fs.writeFile([MANUSCRIPT_DIR, filename], `# ${title}\n\n`);
   model.toc.addChapter(filename, title);
@@ -156,7 +177,10 @@ export async function createChapter(model: ProjectModel, title: string): Promise
  * The existing node's label and children are preserved; only path is filled in.
  * Returns the new filename.
  */
-export async function promoteOutlineEntry(model: ProjectModel, label: string): Promise<string> {
+export async function promoteOutlineEntry(
+  model: ProjectModel,
+  label: string,
+): Promise<string> {
   const filename = titleToFilename(label);
   await model.fs.writeFile([MANUSCRIPT_DIR, filename], `# ${label}\n\n`);
   if (!model.toc.promoteNode(label, filename)) {
@@ -167,7 +191,10 @@ export async function promoteOutlineEntry(model: ProjectModel, label: string): P
 }
 
 /** Reorder root-level TOC entries and save toc.md. */
-export async function reorderChapters(model: ProjectModel, filenames: string[]): Promise<void> {
+export async function reorderChapters(
+  model: ProjectModel,
+  filenames: string[],
+): Promise<void> {
   model.toc.reorder(filenames);
   await model.fs.writeFile([MANUSCRIPT_DIR, "toc.md"], model.toc.serialize());
 }
@@ -183,9 +210,16 @@ export function extractH1(markdown: string): string | null {
  * of the current filename. e.g. ("Elara the Wise", "characters/elara.md") →
  * "characters/elara-the-wise.md".
  */
-export function wikiFilenameForTitle(h1: string, currentFilename: string): string {
+export function wikiFilenameForTitle(
+  h1: string,
+  currentFilename: string,
+): string {
   const slug =
-    h1.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+    h1
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".md";
   const lastSlash = currentFilename.lastIndexOf("/");
   return lastSlash >= 0 ? currentFilename.slice(0, lastSlash + 1) + slug : slug;
 }
@@ -238,9 +272,16 @@ export async function createWikiFile(
   title: string,
 ): Promise<string> {
   const slug =
-    title.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".md";
+    title
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".md";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
-  await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], `# ${title.trim()}\n\n`);
+  await model.fs.writeFile(
+    [WIKI_DIR, ...filename.split("/")],
+    `# ${title.trim()}\n\n`,
+  );
   return filename;
 }
 
@@ -253,9 +294,16 @@ export async function createWikiFolder(
   parentDir: string,
   name: string,
 ): Promise<string> {
-  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   const folderPath = parentDir ? `${parentDir}/${slug}` : slug;
-  await model.fs.writeFile([WIKI_DIR, ...folderPath.split("/"), ".gitkeep"], "");
+  await model.fs.writeFile(
+    [WIKI_DIR, ...folderPath.split("/"), ".gitkeep"],
+    "",
+  );
   return folderPath;
 }
 
@@ -281,7 +329,11 @@ export async function createDiagramFile(
   name: string,
 ): Promise<string> {
   const slug =
-    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
   const content = `flowchart TD\n`;
   await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
@@ -295,7 +347,11 @@ export async function createTimelineFile(
   name: string,
 ): Promise<string> {
   const slug =
-    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
   const content = `timeline\n  title ${name.trim()}\n`;
   await model.fs.writeFile([WIKI_DIR, ...filename.split("/")], content);
@@ -309,7 +365,11 @@ export async function createMindmapFile(
   name: string,
 ): Promise<string> {
   const slug =
-    name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".mmd";
+    name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") + ".mmd";
   const filename = parentDir ? `${parentDir}/${slug}` : slug;
   const rootLabel = name.trim();
   const content = `mindmap\n  root((${rootLabel}))\n`;
@@ -318,18 +378,24 @@ export async function createMindmapFile(
 }
 
 /** Build a context string for AI prompts from the current project state. */
-export async function buildExerciseContext(model: ProjectModel, maxChars = 1500): Promise<string> {
+export async function buildExerciseContext(
+  model: ProjectModel,
+  maxChars = 1500,
+): Promise<string> {
   const lines: string[] = [`Project: ${model.config.project.title}`];
   if (model.config.project.author) {
     lines.push(`Author: ${model.config.project.author}`);
   }
   if (model.chapters.length > 0) {
-    const pick = model.chapters[Math.floor(Math.random() * model.chapters.length)];
+    const pick =
+      model.chapters[Math.floor(Math.random() * model.chapters.length)];
     const text = await model.fs.readFile(MANUSCRIPT_DIR, pick);
     if (text) lines.push(`\nExcerpt from ${pick}:\n${text.slice(0, maxChars)}`);
   }
   if (model.wikiFiles.length > 0) {
-    const names = model.wikiFiles.slice(0, 15).map((f) => f.replace(/\.md$/, "").replace(/\//g, " › "));
+    const names = model.wikiFiles
+      .slice(0, 15)
+      .map((f) => f.replace(/\.md$/, "").replace(/\//g, " › "));
     lines.push(`\nWiki pages: ${names.join(", ")}`);
   }
   return lines.join("\n");
