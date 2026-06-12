@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AiConfig } from "../lib/ai";
 
 vi.mock("@tauri-apps/api/core", () => ({
   Channel: class {
@@ -32,15 +31,22 @@ const finalMessage = (text: string) => ({
   }),
 });
 
-describe("streamExercise", () => {
-  const config: AiConfig = { anthropicApiKey: "sk-test" };
+const exerciseModel = {
+  provider: "anthropic" as const,
+  model: "claude-haiku-4-5-20251001",
+};
+const apiKey = "sk-test";
 
+describe("streamExercise", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("throws when no API key is configured", async () => {
-    const gen = streamExercise("Write something", {});
+    const gen = streamExercise("Write something", {
+      provider: "anthropic",
+      model: "claude-haiku-4-5-20251001",
+    });
     await expect(gen.next()).rejects.toThrow("No Anthropic API key");
   });
 
@@ -52,7 +58,7 @@ describe("streamExercise", () => {
     ]);
 
     const chunks: string[] = [];
-    for await (const chunk of streamExercise("Write", config)) {
+    for await (const chunk of streamExercise("Write", exerciseModel, apiKey)) {
       chunks.push(chunk);
     }
     expect(chunks).toEqual(["Hello", " World"]);
@@ -62,7 +68,7 @@ describe("streamExercise", () => {
     simulateStream([finalMessage("No text deltas here")]);
 
     const chunks: string[] = [];
-    for await (const chunk of streamExercise("Write", config)) {
+    for await (const chunk of streamExercise("Write", exerciseModel, apiKey)) {
       chunks.push(chunk);
     }
     expect(chunks).toEqual([]);
@@ -70,7 +76,7 @@ describe("streamExercise", () => {
 
   it("calls anthropic_stream with the correct command", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) {
+    for await (const _ of streamExercise("prompt", exerciseModel, apiKey)) {
       /* drain */
     }
     expect(mockInvoke).toHaveBeenCalledWith(
@@ -81,7 +87,11 @@ describe("streamExercise", () => {
 
   it("passes the prompt in the user message", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("My writing prompt", config)) {
+    for await (const _ of streamExercise(
+      "My writing prompt",
+      exerciseModel,
+      apiKey,
+    )) {
       /* drain */
     }
 
@@ -96,7 +106,12 @@ describe("streamExercise", () => {
 
   it("appends context to the message when provided", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("Prompt", config, "context data")) {
+    for await (const _ of streamExercise(
+      "Prompt",
+      exerciseModel,
+      apiKey,
+      "context data",
+    )) {
       /* drain */
     }
 
@@ -111,7 +126,7 @@ describe("streamExercise", () => {
 
   it("uses claude-haiku as the model", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) {
+    for await (const _ of streamExercise("prompt", exerciseModel, apiKey)) {
       /* drain */
     }
 
@@ -121,7 +136,7 @@ describe("streamExercise", () => {
 
   it("passes an empty tools array", async () => {
     simulateStream([finalMessage("")]);
-    for await (const _ of streamExercise("prompt", config)) {
+    for await (const _ of streamExercise("prompt", exerciseModel, apiKey)) {
       /* drain */
     }
 

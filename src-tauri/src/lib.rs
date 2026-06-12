@@ -5,6 +5,78 @@ use std::sync::Mutex;
 use tauri::Manager;
 
 // ---------------------------------------------------------------------------
+// App settings (stored in OS app-data dir as JSON)
+// ---------------------------------------------------------------------------
+
+#[tauri::command]
+fn load_app_settings(app_handle: tauri::AppHandle) -> Result<String, String> {
+    let path = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?
+        .join("settings.json");
+    match std::fs::read_to_string(&path) {
+        Ok(s) => Ok(s),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok("{}".to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+fn save_app_settings(json: String, app_handle: tauri::AppHandle) -> Result<(), String> {
+    let dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| e.to_string())?;
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    std::fs::write(dir.join("settings.json"), json).map_err(|e| e.to_string())
+}
+
+// ---------------------------------------------------------------------------
+// Credentials (stored in OS keychain)
+// ---------------------------------------------------------------------------
+
+fn no_such_entry(e: &keyring::Error) -> bool {
+    matches!(e, keyring::Error::NoEntry)
+        || e.to_string().to_lowercase().contains("not found")
+        || e.to_string().to_lowercase().contains("no entry")
+}
+
+#[tauri::command]
+fn get_credential(key: String) -> Result<Option<String>, String> {
+    let entry = keyring::Entry::new("booksaga", &key).map_err(|e| e.to_string())?;
+    match entry.get_password() {
+        Ok(v) => Ok(Some(v)),
+        Err(ref e) if no_such_entry(e) => Ok(None),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+#[tauri::command]
+fn set_credential(key: String, value: String) -> Result<(), String> {
+    let entry = keyring::Entry::new("booksaga", &key).map_err(|e| e.to_string())?;
+    if value.is_empty() {
+        match entry.delete_credential() {
+            Ok(()) => Ok(()),
+            Err(ref e) if no_such_entry(e) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
+    } else {
+        entry.set_password(&value).map_err(|e| e.to_string())
+    }
+}
+
+#[tauri::command]
+fn delete_credential(key: String) -> Result<(), String> {
+    let entry = keyring::Entry::new("booksaga", &key).map_err(|e| e.to_string())?;
+    match entry.delete_credential() {
+        Ok(()) => Ok(()),
+        Err(ref e) if no_such_entry(e) => Ok(()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Project scanning
 // ---------------------------------------------------------------------------
 
@@ -124,6 +196,7 @@ fn scan_project(root_path: String) -> Result<ScannedProject, String> {
 enum AnthropicEvent {
     TextDelta { text: String },
     FinalMessage { json: String },
+    ToolsNotSupported,
 }
 
 enum ContentBlock {
@@ -307,6 +380,221 @@ async fn anthropic_stream(
     Ok(())
 }
 
+// ---------------------------------------------------------------------------
+// Ollama streaming
+// ---------------------------------------------------------------------------
+
+fn is_tools_unsupported(text: &str) -> bool {
+    let l = text.to_lowercase();
+    l.contains("does not support tools")
+        || l.contains("model does not support")
+        || (l.contains("tool") && l.contains("not support"))
+}
+
+fn convert_messages_to_ollama(messages: &serde_json::Value) -> Vec<serde_json::Value> {
+    let mut result = Vec::new();
+    let Some(msgs) = messages.as_array() else {
+        return result;
+    };
+    for msg in msgs {
+        let role = msg["role"].as_str().unwrap_or("user");
+        if let Some(text) = msg["content"].as_str() {
+            result.push(serde_json::json!({ "role": role, "content": text }));
+            continue;
+        }
+        let Some(blocks) = msg["content"].as_array() else {
+            continue;
+        };
+        let mut text_parts: Vec<String> = Vec::new();
+        let mut tool_calls: Vec<serde_json::Value> = Vec::new();
+        let mut tool_results: Vec<serde_json::Value> = Vec::new();
+        for block in blocks {
+            match block["type"].as_str() {
+                Some("text") => {
+                    if let Some(t) = block["text"].as_str() {
+                        text_parts.push(t.to_owned());
+                    }
+                }
+                Some("tool_use") => {
+                    tool_calls.push(serde_json::json!({
+                        "function": { "name": block["name"], "arguments": block["input"] }
+                    }));
+                }
+                Some("tool_result") => {
+                    tool_results.push(serde_json::json!({
+                        "role": "tool",
+                        "content": block["content"].as_str().unwrap_or(""),
+                    }));
+                }
+                _ => {}
+            }
+        }
+        if !tool_results.is_empty() {
+            result.extend(tool_results);
+        } else {
+            let mut m = serde_json::json!({
+                "role": role,
+                "content": text_parts.join(""),
+            });
+            if !tool_calls.is_empty() {
+                m["tool_calls"] = serde_json::Value::Array(tool_calls);
+            }
+            result.push(m);
+        }
+    }
+    result
+}
+
+#[tauri::command]
+async fn ollama_stream(
+    endpoint: String,
+    model: String,
+    system: String,
+    messages_json: String,
+    tools_json: String,
+    on_event: tauri::ipc::Channel<AnthropicEvent>,
+) -> Result<(), String> {
+    let messages: serde_json::Value =
+        serde_json::from_str(&messages_json).map_err(|e| format!("invalid messages: {e}"))?;
+    let tools: serde_json::Value =
+        serde_json::from_str(&tools_json).map_err(|e| format!("invalid tools: {e}"))?;
+
+    let mut ollama_msgs = convert_messages_to_ollama(&messages);
+    if !system.is_empty() {
+        ollama_msgs.insert(
+            0,
+            serde_json::json!({ "role": "system", "content": system }),
+        );
+    }
+
+    let mut body = serde_json::json!({
+        "model": model,
+        "stream": true,
+        "messages": ollama_msgs,
+    });
+
+    if let serde_json::Value::Array(ref t) = tools {
+        if !t.is_empty() {
+            let ollama_tools: Vec<serde_json::Value> = t
+                .iter()
+                .map(|tool| {
+                    serde_json::json!({
+                        "type": "function",
+                        "function": {
+                            "name": tool["name"],
+                            "description": tool["description"],
+                            "parameters": tool["input_schema"],
+                        },
+                    })
+                })
+                .collect();
+            body["tools"] = serde_json::Value::Array(ollama_tools);
+        }
+    }
+
+    let base = endpoint.trim_end_matches('/');
+    let client = reqwest::Client::new();
+    let resp = client
+        .post(format!("{base}/api/chat"))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Ollama connection failed: {e}"))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let text = resp.text().await.unwrap_or_default();
+        if is_tools_unsupported(&text) {
+            on_event
+                .send(AnthropicEvent::ToolsNotSupported)
+                .map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+        return Err(format!("Ollama error {status}: {text}"));
+    }
+
+    use futures::StreamExt;
+
+    let mut stream = resp.bytes_stream();
+    let mut buf = String::new();
+    let mut full_text = String::new();
+    let mut final_tool_calls: Vec<serde_json::Value> = Vec::new();
+
+    while let Some(chunk) = stream.next().await {
+        let bytes = chunk.map_err(|e| e.to_string())?;
+        buf.push_str(&String::from_utf8_lossy(&bytes));
+        while let Some(pos) = buf.find('\n') {
+            let line = buf[..pos].trim().to_owned();
+            buf = buf[pos + 1..].to_owned();
+            if line.is_empty() {
+                continue;
+            }
+            let ev: serde_json::Value = match serde_json::from_str(&line) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+            if let Some(err) = ev["error"].as_str() {
+                if is_tools_unsupported(err) {
+                    on_event
+                        .send(AnthropicEvent::ToolsNotSupported)
+                        .map_err(|e| e.to_string())?;
+                    return Ok(());
+                }
+                return Err(format!("Ollama error: {err}"));
+            }
+            let content = ev["message"]["content"].as_str().unwrap_or("").to_owned();
+            if !content.is_empty() {
+                on_event
+                    .send(AnthropicEvent::TextDelta {
+                        text: content.clone(),
+                    })
+                    .map_err(|e| e.to_string())?;
+                full_text.push_str(&content);
+            }
+            if ev["done"].as_bool().unwrap_or(false) {
+                if let Some(calls) = ev["message"]["tool_calls"].as_array() {
+                    final_tool_calls = calls.clone();
+                }
+            }
+        }
+    }
+
+    let mut content_blocks: Vec<serde_json::Value> = Vec::new();
+    if !full_text.is_empty() {
+        content_blocks.push(serde_json::json!({ "type": "text", "text": full_text }));
+    }
+    let stop_reason = if final_tool_calls.is_empty() {
+        "end_turn"
+    } else {
+        for (i, call) in final_tool_calls.iter().enumerate() {
+            let name = call["function"]["name"].as_str().unwrap_or("");
+            let args = &call["function"]["arguments"];
+            content_blocks.push(serde_json::json!({
+                "type": "tool_use",
+                "id": format!("call-{i}"),
+                "name": name,
+                "input": args,
+            }));
+        }
+        "tool_use"
+    };
+
+    on_event
+        .send(AnthropicEvent::FinalMessage {
+            json: serde_json::json!({
+                "id": format!("ollama-{model}"),
+                "type": "message",
+                "role": "assistant",
+                "content": content_blocks,
+                "stop_reason": stop_reason,
+            })
+            .to_string(),
+        })
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
+}
+
 // Shared project root — written on project open, read by the booksaga:// protocol handler.
 pub struct ProjectRoot(pub Mutex<Option<String>>);
 
@@ -460,6 +748,12 @@ pub fn run() {
             save_image,
             anthropic_stream,
             scan_project,
+            load_app_settings,
+            save_app_settings,
+            get_credential,
+            set_credential,
+            delete_credential,
+            ollama_stream,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

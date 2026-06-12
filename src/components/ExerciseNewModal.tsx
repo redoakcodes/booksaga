@@ -32,7 +32,8 @@ const ExerciseNewModal: Component<Props> = (props) => {
         : undefined;
       for await (const chunk of streamExercise(
         entry.prompt,
-        props.aiConfig,
+        props.aiConfig.exerciseModelConfig,
+        props.aiConfig.apiKey,
         context,
       )) {
         setResult((r) => r + chunk);

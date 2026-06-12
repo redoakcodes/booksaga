@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AiConfig } from "../lib/ai";
 import type { AgentEvent, ApiMessage } from "../lib/saga";
 import type { ProjectModel } from "../lib/project";
 
@@ -42,7 +41,11 @@ function finalMessage(
   };
 }
 
-const config: AiConfig = { anthropicApiKey: "sk-test" };
+const sagaModel = {
+  provider: "anthropic" as const,
+  model: "claude-sonnet-4-6",
+};
+const apiKey = "sk-test";
 const noConfirm = async () => false;
 
 async function collectEvents(
@@ -59,7 +62,15 @@ describe("streamSaga", () => {
   });
 
   it("throws when no API key is configured", async () => {
-    const gen = streamSaga([], {}, null, null, noConfirm);
+    const gen = streamSaga(
+      [],
+      { provider: "anthropic", model: "claude-sonnet-4-6" },
+      undefined,
+      undefined,
+      null,
+      null,
+      noConfirm,
+    );
     await expect(gen.next()).rejects.toThrow("No Anthropic API key");
   });
 
@@ -72,7 +83,9 @@ describe("streamSaga", () => {
     const events = await collectEvents(
       streamSaga(
         [{ role: "user", content: "Hi" }],
-        config,
+        sagaModel,
+        apiKey,
+        undefined,
         null,
         null,
         noConfirm,
@@ -91,7 +104,15 @@ describe("streamSaga", () => {
     simulateStream([finalMessage("Response")]);
     const messages: ApiMessage[] = [{ role: "user", content: "Hello" }];
 
-    for await (const _ of streamSaga(messages, config, null, null, noConfirm)) {
+    for await (const _ of streamSaga(
+      messages,
+      sagaModel,
+      apiKey,
+      undefined,
+      null,
+      null,
+      noConfirm,
+    )) {
       /* drain */
     }
 
@@ -101,7 +122,15 @@ describe("streamSaga", () => {
 
   it("uses claude-sonnet as the model", async () => {
     simulateStream([finalMessage("ok")]);
-    for await (const _ of streamSaga([], config, null, null, noConfirm)) {
+    for await (const _ of streamSaga(
+      [],
+      sagaModel,
+      apiKey,
+      undefined,
+      null,
+      null,
+      noConfirm,
+    )) {
       /* drain */
     }
 
@@ -111,7 +140,15 @@ describe("streamSaga", () => {
 
   it("includes no tools when model is null", async () => {
     simulateStream([finalMessage("ok")]);
-    for await (const _ of streamSaga([], config, null, null, noConfirm)) {
+    for await (const _ of streamSaga(
+      [],
+      sagaModel,
+      apiKey,
+      undefined,
+      null,
+      null,
+      noConfirm,
+    )) {
       /* drain */
     }
 
@@ -140,7 +177,9 @@ describe("streamSaga", () => {
     const events = await collectEvents(
       streamSaga(
         [{ role: "user", content: "List pages" }],
-        config,
+        sagaModel,
+        apiKey,
+        undefined,
         fakeModel as unknown as ProjectModel,
         null,
         noConfirm,
@@ -179,7 +218,9 @@ describe("streamSaga", () => {
 
     for await (const _ of streamSaga(
       [],
-      config,
+      sagaModel,
+      apiKey,
+      undefined,
       fakeModel as unknown as ProjectModel,
       null,
       async () => false,

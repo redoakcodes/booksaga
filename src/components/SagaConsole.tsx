@@ -26,7 +26,8 @@ type DisplayMessage =
   | { kind: "user"; content: string }
   | { kind: "saga"; content: string; streaming?: boolean }
   | { kind: "tool_call"; name: string; args: Record<string, unknown> }
-  | { kind: "tool_result"; name: string; result: string; isError: boolean };
+  | { kind: "tool_result"; name: string; result: string; isError: boolean }
+  | { kind: "notice"; content: string };
 
 interface Props {
   open: boolean;
@@ -149,7 +150,9 @@ const SagaConsole: Component<Props> = (props) => {
     try {
       for await (const event of streamSaga(
         apiMessages,
-        props.aiConfig,
+        props.aiConfig.sagaModelConfig,
+        props.aiConfig.apiKey,
+        props.aiConfig.braveApiKey,
         props.model,
         props.currentFile,
         confirmCallback,
@@ -207,6 +210,11 @@ const SagaConsole: Component<Props> = (props) => {
             isError: event.isError,
           },
         ]);
+        break;
+
+      case "notice":
+        finalizeStreaming();
+        setMessages((m) => [...m, { kind: "notice", content: event.text }]);
         break;
 
       case "done":
@@ -284,6 +292,9 @@ const SagaConsole: Component<Props> = (props) => {
                       </span>
                     </div>
                   );
+                }
+                if (msg.kind === "notice") {
+                  return <div class="saga-notice">{msg.content}</div>;
                 }
               }}
             </For>

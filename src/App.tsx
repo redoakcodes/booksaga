@@ -36,8 +36,12 @@ import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import {
   loadSettings,
   saveSettings,
+  loadCredentials,
+  saveCredentials,
+  resolveModel,
   applyTheme,
   type AppSettings,
+  type Credentials,
 } from "./lib/settings";
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
@@ -77,7 +81,9 @@ const App: Component = () => {
   const [settingsOpen, setSettingsOpen] = createSignal(false);
   const [appSettings, setAppSettings] = createSignal<AppSettings>({
     theme: "dark",
+    llm: {},
   });
+  const [credentials, setCredentials] = createSignal<Credentials>({});
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
@@ -87,14 +93,12 @@ const App: Component = () => {
     store.project()?.wikiTitleMap ?? new Map<string, string>();
   const wikiTitles = () => Array.from(wikiTitleMap().keys());
 
-  createEffect(() => {
-    const project = store.project();
-    if (!project) return;
-    loadSettings(project.fs).then((s) => {
-      setAppSettings(s);
-      applyTheme(s.theme);
-    });
+  // Load settings and credentials at startup (not project-dependent)
+  loadSettings().then((s) => {
+    setAppSettings(s);
+    applyTheme(s.theme);
   });
+  loadCredentials().then(setCredentials);
 
   createEffect(() => {
     const project = store.project();
@@ -341,18 +345,20 @@ const App: Component = () => {
     }
   }
 
-  async function handleSaveSettings(settings: AppSettings) {
-    const project = store.project();
-    if (!project) return;
-    await saveSettings(project.fs, settings);
+  async function handleSaveSettings(settings: AppSettings, creds: Credentials) {
+    await saveSettings(settings);
+    await saveCredentials(creds);
     setAppSettings(settings);
+    setCredentials(creds);
     applyTheme(settings.theme);
     setSettingsOpen(false);
   }
 
   const aiConfig = (): AiConfig => ({
-    anthropicApiKey: appSettings().anthropicApiKey,
-    braveApiKey: appSettings().braveApiKey,
+    sagaModelConfig: resolveModel(appSettings().llm, "saga"),
+    exerciseModelConfig: resolveModel(appSettings().llm, "exercise"),
+    apiKey: credentials().anthropicApiKey,
+    braveApiKey: credentials().braveApiKey,
   });
 
   function handleToggleSaga() {
@@ -526,6 +532,7 @@ const App: Component = () => {
         <Show when={settingsOpen()}>
           <SettingsModal
             settings={appSettings()}
+            credentials={credentials()}
             onSave={handleSaveSettings}
             onClose={() => setSettingsOpen(false)}
           />

@@ -1,10 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import {
-  streamAnthropicRequest,
+  streamLlmRequest,
   type AnthropicMessage,
   type ContentBlock,
 } from "./anthropic";
-import type { AiConfig } from "./ai";
+import type { ModelConfig } from "./settings";
 import type { ProjectModel } from "./project";
 import { MANUSCRIPT_DIR, WIKI_DIR, EXERCISES_DIR } from "./project";
 
@@ -34,6 +34,7 @@ export type AgentEvent =
       args: Record<string, unknown>;
     }
   | { type: "tool_result"; name: string; result: string; isError: boolean }
+  | { type: "notice"; text: string }
   | { type: "done" };
 
 export type ConfirmCallback = (
@@ -329,12 +330,12 @@ async function executeTool(
   name: string,
   args: Record<string, unknown>,
   model: ProjectModel | null,
-  config: AiConfig,
+  braveApiKey: string | undefined,
 ): Promise<[string, boolean]> {
   try {
     switch (name) {
       case "web_search": {
-        if (!config.braveApiKey)
+        if (!braveApiKey)
           return [
             "No Brave Search API key configured. Add your key in Settings.",
             true,
@@ -342,7 +343,7 @@ async function executeTool(
         const result = await invoke<string>("brave_search", {
           query: args.query as string,
           count: Math.min((args.count as number) ?? 5, 10),
-          apiKey: config.braveApiKey,
+          apiKey: braveApiKey,
         });
         return [result, false];
       }
@@ -403,42 +404,57 @@ async function executeTool(
 }
 
 // ---------------------------------------------------------------------------
+// Tool-support detection cache (session-only)
+// ---------------------------------------------------------------------------
+
+const noToolsModels = new Set<string>();
+
+function modelKey(cfg: ModelConfig): string {
+  return `${cfg.provider}:${cfg.model}`;
+}
+
+// ---------------------------------------------------------------------------
 // Agentic stream
 // ---------------------------------------------------------------------------
 
 export async function* streamSaga(
   apiMessages: ApiMessage[],
-  config: AiConfig,
+  modelConfig: ModelConfig,
+  apiKey: string | undefined,
+  braveApiKey: string | undefined,
   model: ProjectModel | null,
   currentFile: string | null,
   onConfirm: ConfirmCallback,
 ): AsyncGenerator<AgentEvent> {
-  if (!config.anthropicApiKey) {
-    throw new Error(
-      "No Anthropic API key configured. Add your key in Menu → Settings.",
-    );
-  }
-
   let system = SYSTEM_PROMPT_BASE;
   if (currentFile) system += `\n\nCurrently open file: ${currentFile}`;
 
-  const tools: ToolDefinition[] = [
-    ...(model ? TOOL_DEFINITIONS : []),
-    ...(config.braveApiKey ? [SEARCH_TOOL] : []),
-  ];
+  const key = modelKey(modelConfig);
+  const toolsDisabled = noToolsModels.has(key);
+
+  const tools: ToolDefinition[] = toolsDisabled
+    ? []
+    : [
+        ...(model ? TOOL_DEFINITIONS : []),
+        ...(braveApiKey ? [SEARCH_TOOL] : []),
+      ];
 
   while (true) {
     let textContent = "";
     let finalMsg: AnthropicMessage | null = null;
+    let toolsUnsupported = false;
 
-    for await (const event of streamAnthropicRequest(
-      config.anthropicApiKey,
-      "claude-sonnet-4-6",
+    for await (const event of streamLlmRequest(
+      modelConfig,
+      apiKey,
       system,
       apiMessages,
       tools,
     )) {
-      if (event.type === "text_delta") {
+      if (event.type === "tools_not_supported") {
+        toolsUnsupported = true;
+        break;
+      } else if (event.type === "text_delta") {
         textContent += event.text;
         yield { type: "text", text: event.text };
       } else if (event.type === "final_message") {
@@ -446,7 +462,30 @@ export async function* streamSaga(
       }
     }
 
-    if (!finalMsg) throw new Error("No response received from Anthropic.");
+    if (toolsUnsupported) {
+      noToolsModels.add(key);
+      yield {
+        type: "notice",
+        text: "This model doesn't support tool use — wiki access is unavailable for this session.",
+      };
+      // Retry the same turn without tools
+      for await (const event of streamLlmRequest(
+        modelConfig,
+        apiKey,
+        system,
+        apiMessages,
+        [],
+      )) {
+        if (event.type === "text_delta") {
+          textContent += event.text;
+          yield { type: "text", text: event.text };
+        } else if (event.type === "final_message") {
+          finalMsg = JSON.parse(event.json) as AnthropicMessage;
+        }
+      }
+    }
+
+    if (!finalMsg) throw new Error("No response received.");
 
     // Append assistant turn to history
     const assistantContent: ApiContentBlock[] = [];
@@ -468,7 +507,6 @@ export async function* streamSaga(
     );
     if (toolUses.length === 0) break;
 
-    // Execute each tool call
     const toolResults: ApiContentBlock[] = [];
     for (const tool of toolUses) {
       const args = tool.input as Record<string, unknown>;
@@ -483,10 +521,20 @@ export async function* streamSaga(
           result = "Cancelled by writer.";
           isError = false;
         } else {
-          [result, isError] = await executeTool(tool.name, args, model, config);
+          [result, isError] = await executeTool(
+            tool.name,
+            args,
+            model,
+            braveApiKey,
+          );
         }
       } else {
-        [result, isError] = await executeTool(tool.name, args, model, config);
+        [result, isError] = await executeTool(
+          tool.name,
+          args,
+          model,
+          braveApiKey,
+        );
       }
 
       yield { type: "tool_result", name: tool.name, result, isError };

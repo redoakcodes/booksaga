@@ -1,8 +1,13 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
+import type { ModelConfig } from "./settings";
 
-export type AnthropicStreamEvent =
+export type LlmStreamEvent =
   | { type: "text_delta"; text: string }
-  | { type: "final_message"; json: string };
+  | { type: "final_message"; json: string }
+  | { type: "tools_not_supported" };
+
+/** @deprecated use LlmStreamEvent */
+export type AnthropicStreamEvent = LlmStreamEvent;
 
 export interface ContentBlock {
   type: "text" | "tool_use";
@@ -63,15 +68,15 @@ export async function* drainChannel<T>(
     throw error instanceof Error ? error : new Error(String(error));
 }
 
-/** Stream a single Anthropic API request, yielding events as they arrive. */
+/** Stream a single Anthropic API request. */
 export async function* streamAnthropicRequest(
   apiKey: string,
   model: string,
   system: string,
   messages: unknown[],
   tools: unknown[],
-): AsyncGenerator<AnthropicStreamEvent> {
-  yield* drainChannel<AnthropicStreamEvent>((ch) =>
+): AsyncGenerator<LlmStreamEvent> {
+  yield* drainChannel<LlmStreamEvent>((ch) =>
     invoke("anthropic_stream", {
       apiKey,
       model,
@@ -81,4 +86,40 @@ export async function* streamAnthropicRequest(
       onEvent: ch,
     }),
   );
+}
+
+/** Stream a request routed by provider. */
+export async function* streamLlmRequest(
+  modelConfig: ModelConfig,
+  apiKey: string | undefined,
+  system: string,
+  messages: unknown[],
+  tools: unknown[],
+): AsyncGenerator<LlmStreamEvent> {
+  if (modelConfig.provider === "anthropic") {
+    if (!apiKey) {
+      throw new Error(
+        "No Anthropic API key configured. Add your key in Menu → Settings.",
+      );
+    }
+    yield* streamAnthropicRequest(
+      apiKey,
+      modelConfig.model,
+      system,
+      messages,
+      tools,
+    );
+  } else {
+    const endpoint = modelConfig.endpoint ?? "http://localhost:11434";
+    yield* drainChannel<LlmStreamEvent>((ch) =>
+      invoke("ollama_stream", {
+        endpoint,
+        model: modelConfig.model,
+        system,
+        messagesJson: JSON.stringify(messages),
+        toolsJson: JSON.stringify(tools),
+        onEvent: ch,
+      }),
+    );
+  }
 }
