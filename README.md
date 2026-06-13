@@ -33,5 +33,3 @@ The Rust suite includes unit tests for the git history layer (`src-tauri/src/git
 1. References tracking
 2. Editing workflow
 3. Typesetting?
-4. ollama support
-5. apple intelligence support
