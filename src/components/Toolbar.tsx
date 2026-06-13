@@ -23,6 +23,7 @@ interface Props {
   onNew?: () => void;
   onSettings?: () => void;
   onInsertImage?: () => void;
+  onInsertCitation?: () => void;
   isDiagram?: boolean;
 }
 
@@ -132,6 +133,15 @@ const Toolbar: Component<Props> = (props) => {
                   }}
                 >
                   <span class="toolbar-item-label">Image</span>
+                </button>
+                <button
+                  class="toolbar-menu-item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    props.onInsertCitation?.();
+                  }}
+                >
+                  <span class="toolbar-item-label">Citation</span>
                 </button>
               </div>
             </Show>

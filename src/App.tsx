@@ -24,7 +24,10 @@ import {
   deleteWikiEntry,
   extractH1,
   wikiFilenameForTitle,
+  updateWikiCitations,
 } from "./lib/project";
+import CitationPickerModal from "./components/CitationPickerModal";
+import { parseFrontmatter, serializeFrontmatter } from "./lib/frontmatter";
 import WikiNewModal from "./components/WikiNewModal";
 import type { EntryType } from "./components/WikiNewModal";
 import SettingsModal from "./components/SettingsModal";
@@ -46,7 +49,7 @@ import {
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
-import { insertMarkdown } from "./lib/editorCommands";
+import { insertMarkdown, insertCitation } from "./lib/editorCommands";
 import { invoke } from "@tauri-apps/api/core";
 import type { TauriFileSystem } from "./lib/fs.tauri";
 import "./App.css";
@@ -86,6 +89,7 @@ const App: Component = () => {
   const [credentials, setCredentials] = createSignal<Credentials>({});
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
+  const [citationPickerOpen, setCitationPickerOpen] = createSignal(false);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
   const prompts: PromptEntry[] = promptsData;
 
@@ -141,8 +145,19 @@ const App: Component = () => {
 
     setPendingCreate(null);
     setViewMarkdown(false);
-    const content = await readFile(project, section, filename);
-    store.setOpenFile({ section, filename, content, dirty: false });
+    const raw = await readFile(project, section, filename);
+    if (section === "wiki" && !filename.endsWith(".mmd")) {
+      const { meta, body } = parseFrontmatter(raw);
+      store.setOpenFile({
+        section,
+        filename,
+        content: body,
+        dirty: false,
+        frontmatter: meta,
+      });
+    } else {
+      store.setOpenFile({ section, filename, content: raw, dirty: false });
+    }
   }
 
   async function handleSave() {
@@ -153,6 +168,10 @@ const App: Component = () => {
     store.setSaving(true);
     try {
       if (file.section === "wiki" && !file.filename.endsWith(".mmd")) {
+        const fullContent = serializeFrontmatter(
+          file.frontmatter ?? {},
+          file.content,
+        );
         const h1 = extractH1(file.content);
         const newFilename = h1 ? wikiFilenameForTitle(h1, file.filename) : null;
 
@@ -162,13 +181,13 @@ const App: Component = () => {
             file.filename,
             newFilename,
             h1!,
-            file.content,
+            fullContent,
           );
           const fresh = await loadProject(project.fs);
           store.setProject(fresh);
           store.setOpenFile({ ...file, filename: newFilename, dirty: false });
         } else {
-          await saveFile(project, file.section, file.filename, file.content);
+          await saveFile(project, file.section, file.filename, fullContent);
           store.patchOpenFile({ dirty: false });
           store.setProject({
             ...project,
@@ -181,6 +200,11 @@ const App: Component = () => {
               project.wikiTitleMap,
               file.filename,
               file.content,
+            ),
+            wikiCitations: updateWikiCitations(
+              project.wikiCitations,
+              file.filename,
+              fullContent,
             ),
           });
         }
@@ -243,10 +267,20 @@ const App: Component = () => {
     }
   }
 
-  // Navigate to a wiki page by filename (used by diagram auto-backlinks)
+  // Navigate to a wiki page by filename (used by diagram auto-backlinks and citations)
   async function handleWikiFileClick(filename: string) {
     store.setActiveSection("wiki");
     await handleFileSelect("wiki", filename);
+  }
+
+  async function handleCitationClick(wikiPage: string) {
+    const project = store.project();
+    if (!project) return;
+    const filename = wikiPage + ".md";
+    if (project.wikiFiles.includes(filename)) {
+      store.setActiveSection("wiki");
+      await handleFileSelect("wiki", filename);
+    }
   }
 
   function handleChange(markdown: string) {
@@ -421,6 +455,7 @@ const App: Component = () => {
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
               onInsertImage={() => imageInputRef.click()}
+              onInsertCitation={() => setCitationPickerOpen(true)}
               isDiagram={isDiagram()}
             />
             <Show
@@ -469,6 +504,7 @@ const App: Component = () => {
                       onWikiLinkClick={
                         isWikiOpen() ? handleWikiLinkClick : undefined
                       }
+                      onCitationClick={handleCitationClick}
                     />
                   }
                 >
@@ -518,6 +554,17 @@ const App: Component = () => {
             initialDir={wikiNewInitialDir()}
             onConfirm={handleCreateWikiEntry}
             onCancel={() => setWikiNewOpen(false)}
+          />
+        </Show>
+        <Show when={citationPickerOpen()}>
+          <CitationPickerModal
+            wikiFiles={store.project()?.wikiFiles ?? []}
+            wikiCitations={store.project()?.wikiCitations ?? new Map()}
+            onInsert={(wikiPage) => {
+              insertCitation(wikiPage);
+              setCitationPickerOpen(false);
+            }}
+            onClose={() => setCitationPickerOpen(false)}
           />
         </Show>
         <Show when={exerciseNewOpen()}>

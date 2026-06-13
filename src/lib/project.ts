@@ -3,6 +3,7 @@ import type { IFileSystem } from "./filesystem";
 import { loadConfig, parseConfig, type Config } from "./config";
 import { TocParser, TOC_TEMPLATE, titleToFilename } from "./toc";
 import { buildWikiIndex, replaceWikiLinks, type WikiIndex } from "./wikiIndex";
+import { parseFrontmatter } from "./frontmatter";
 
 export const MANUSCRIPT_DIR = "manuscript";
 export const WIKI_DIR = "wiki";
@@ -19,6 +20,7 @@ export interface ProjectModel {
   exerciseFiles: string[];
   wikiIndex: WikiIndex;
   wikiTitleMap: Map<string, string>; // original H1 title → wiki filename
+  wikiCitations: Map<string, string>; // wiki filename stem → citation string
 }
 
 interface ScannedProject {
@@ -49,6 +51,8 @@ function assembleProject(
     if (h1) wikiTitleMap.set(h1, filename);
   }
 
+  const wikiCitations = buildWikiCitations(wikiContents);
+
   return {
     fs,
     config,
@@ -60,6 +64,7 @@ function assembleProject(
     exerciseFiles: scanned.exerciseFiles,
     wikiIndex,
     wikiTitleMap,
+    wikiCitations,
   };
 }
 
@@ -106,6 +111,8 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
     if (h1) wikiTitleMap.set(h1, filename);
   }
 
+  const wikiCitations = buildWikiCitations(wikiContents);
+
   return {
     fs,
     config,
@@ -117,6 +124,7 @@ export async function loadProject(fs: IFileSystem): Promise<ProjectModel> {
     exerciseFiles,
     wikiIndex,
     wikiTitleMap,
+    wikiCitations,
   };
 }
 
@@ -399,6 +407,34 @@ export async function buildExerciseContext(
     lines.push(`\nWiki pages: ${names.join(", ")}`);
   }
   return lines.join("\n");
+}
+
+function buildWikiCitations(
+  contents: Map<string, string>,
+): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const [filename, content] of contents) {
+    const { meta } = parseFrontmatter(content);
+    if (meta.citation) map.set(filename.replace(/\.md$/, ""), meta.citation);
+  }
+  return map;
+}
+
+/** Update the citations map when a single wiki file is saved. */
+export function updateWikiCitations(
+  citations: Map<string, string>,
+  filename: string,
+  content: string,
+): Map<string, string> {
+  const next = new Map(citations);
+  const stem = filename.replace(/\.md$/, "");
+  const { meta } = parseFrontmatter(content);
+  if (meta.citation) {
+    next.set(stem, meta.citation);
+  } else {
+    next.delete(stem);
+  }
+  return next;
 }
 
 function sectionDir(section: "manuscript" | "wiki" | "exercises"): string {

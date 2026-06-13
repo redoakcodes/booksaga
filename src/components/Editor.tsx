@@ -17,6 +17,7 @@ interface Props {
   readonly?: boolean;
   onChange?: (markdown: string) => void;
   onWikiLinkClick?: (target: string) => void;
+  onCitationClick?: (wikiPage: string) => void;
 }
 
 const Editor: Component<Props> = (props) => {
@@ -30,6 +31,7 @@ const Editor: Component<Props> = (props) => {
       !(props.readonly ?? false),
       props.onChange,
       props.onWikiLinkClick,
+      props.onCitationClick,
     );
     registerView(view);
   }

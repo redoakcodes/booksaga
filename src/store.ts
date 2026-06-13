@@ -6,8 +6,9 @@ export type Section = "manuscript" | "wiki" | "exercises";
 export interface OpenFile {
   section: Section;
   filename: string;
-  content: string;
+  content: string; // body only — frontmatter stripped for wiki files
   dirty: boolean;
+  frontmatter?: Record<string, string>; // preserved for wiki files
 }
 
 function createAppStore() {

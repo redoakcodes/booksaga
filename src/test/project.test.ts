@@ -13,6 +13,7 @@ import {
   createMindmapFile,
   createTimelineFile,
   buildExerciseContext,
+  updateWikiCitations,
   MANUSCRIPT_DIR,
   WIKI_DIR,
   EXERCISES_DIR,
@@ -142,6 +143,19 @@ describe("loadProject", () => {
     fs.files.set(`${WIKI_DIR}/city.md`, "");
     const model = await loadProject(fs);
     expect(model.wikiIndex.backward.get("city")).toContain("elara");
+  });
+
+  it("populates wikiCitations from frontmatter", async () => {
+    fs.files.set(
+      `${WIKI_DIR}/galbraith.md`,
+      `---\ncitation: "Galbraith, J.K. The Great Crash. 1954."\n---\n# Galbraith\n`,
+    );
+    fs.files.set(`${WIKI_DIR}/other.md`, "# No citation here.\n");
+    const model = await loadProject(fs);
+    expect(model.wikiCitations.get("galbraith")).toBe(
+      "Galbraith, J.K. The Great Crash. 1954.",
+    );
+    expect(model.wikiCitations.has("other")).toBe(false);
   });
 
   it("stores the fs reference on the model", async () => {
@@ -548,5 +562,39 @@ describe("buildExerciseContext", () => {
     const ctx = await buildExerciseContext(model);
     expect(ctx.length).toBeGreaterThan(0);
     expect(ctx).toContain("Empty Project");
+  });
+});
+
+describe("updateWikiCitations", () => {
+  it("adds a citation when frontmatter is present", () => {
+    const original = new Map<string, string>();
+    const updated = updateWikiCitations(
+      original,
+      "galbraith.md",
+      `---\ncitation: "Galbraith 1954"\n---\n# Body\n`,
+    );
+    expect(updated.get("galbraith")).toBe("Galbraith 1954");
+  });
+
+  it("removes a citation when frontmatter is absent", () => {
+    const original = new Map([["galbraith", "Galbraith 1954"]]);
+    const updated = updateWikiCitations(original, "galbraith.md", "# Body\n");
+    expect(updated.has("galbraith")).toBe(false);
+  });
+
+  it("does not mutate the original map", () => {
+    const original = new Map([["galbraith", "Galbraith 1954"]]);
+    updateWikiCitations(original, "galbraith.md", "# Body\n");
+    expect(original.has("galbraith")).toBe(true);
+  });
+
+  it("updates an existing citation string", () => {
+    const original = new Map([["galbraith", "Old citation"]]);
+    const updated = updateWikiCitations(
+      original,
+      "galbraith.md",
+      `---\ncitation: "New citation"\n---\n# Body\n`,
+    );
+    expect(updated.get("galbraith")).toBe("New citation");
   });
 });

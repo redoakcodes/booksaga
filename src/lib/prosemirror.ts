@@ -21,6 +21,7 @@ import MarkdownIt from "markdown-it";
 import { nativeSpellCheck } from "./platform";
 
 const WIKILINK_RE = /\[\[([^\][\n]+)\]\]/g;
+const CITATION_RE = /\[\[cite:([^\][\n]+)\]\]/g;
 const STRIKETHROUGH_RE = /~~([^~\n]+)~~/g;
 
 // ---------------------------------------------------------------------------
@@ -28,29 +29,56 @@ const STRIKETHROUGH_RE = /~~([^~\n]+)~~/g;
 // ---------------------------------------------------------------------------
 
 export const editorSchema = new Schema({
-  nodes: baseSchema.spec.nodes.addBefore("image", "wikilink", {
-    group: "inline",
-    inline: true,
-    atom: true,
-    attrs: { target: {} },
-    toDOM(node): DOMOutputSpec {
-      return [
-        "span",
-        { class: "wikilink", "data-wikilink": node.attrs.target as string },
-        `[[${node.attrs.target}]]`,
-      ];
-    },
-    parseDOM: [
-      {
-        tag: "span[data-wikilink]",
-        getAttrs(dom) {
-          return {
-            target: (dom as HTMLElement).getAttribute("data-wikilink") ?? "",
-          };
-        },
+  nodes: baseSchema.spec.nodes
+    .addBefore("image", "wikilink", {
+      group: "inline",
+      inline: true,
+      atom: true,
+      attrs: { target: {} },
+      toDOM(node): DOMOutputSpec {
+        return [
+          "span",
+          { class: "wikilink", "data-wikilink": node.attrs.target as string },
+          `[[${node.attrs.target}]]`,
+        ];
       },
-    ],
-  }),
+      parseDOM: [
+        {
+          tag: "span[data-wikilink]",
+          getAttrs(dom) {
+            return {
+              target: (dom as HTMLElement).getAttribute("data-wikilink") ?? "",
+            };
+          },
+        },
+      ],
+    })
+    .addBefore("image", "citation", {
+      group: "inline",
+      inline: true,
+      atom: true,
+      attrs: { wikiPage: {} },
+      toDOM(node): DOMOutputSpec {
+        const wikiPage = node.attrs.wikiPage as string;
+        const stem = wikiPage.split("/").pop()!.replace(/\.md$/, "");
+        return [
+          "span",
+          { class: "citation", "data-citation": wikiPage },
+          `[${stem}]`,
+        ];
+      },
+      parseDOM: [
+        {
+          tag: "span[data-citation]",
+          getAttrs(dom) {
+            return {
+              wikiPage:
+                (dom as HTMLElement).getAttribute("data-citation") ?? "",
+            };
+          },
+        },
+      ],
+    }),
   marks: baseSchema.spec.marks.addToEnd("strikethrough", {
     toDOM(): DOMOutputSpec {
       return ["s", 0];
@@ -85,6 +113,41 @@ function addWikilinkRule(md: MarkdownIt): void {
           const wl = new state.Token("wikilink", "", 0);
           wl.attrSet("target", m[1]);
           next.push(wl);
+          last = m.index + m[0].length;
+        }
+        if (last < tok.content.length) {
+          const t = new state.Token("text", "", 0);
+          t.content = tok.content.slice(last);
+          next.push(t);
+        }
+      }
+      block.children = next;
+    }
+  });
+}
+
+function addCitationRule(md: MarkdownIt): void {
+  md.core.ruler.push("citation", (state) => {
+    for (const block of state.tokens) {
+      if (block.type !== "inline" || !block.children) continue;
+      const next: typeof block.children = [];
+      for (const tok of block.children) {
+        if (tok.type !== "text") {
+          next.push(tok);
+          continue;
+        }
+        let last = 0;
+        let m: RegExpExecArray | null;
+        CITATION_RE.lastIndex = 0;
+        while ((m = CITATION_RE.exec(tok.content)) !== null) {
+          if (m.index > last) {
+            const t = new state.Token("text", "", 0);
+            t.content = tok.content.slice(last, m.index);
+            next.push(t);
+          }
+          const ct = new state.Token("citation", "", 0);
+          ct.attrSet("wikiPage", m[1]);
+          next.push(ct);
           last = m.index + m[0].length;
         }
         if (last < tok.content.length) {
@@ -137,6 +200,7 @@ function addSpanRule(md: MarkdownIt, re: RegExp, tokenName: string): void {
 
 const md = new MarkdownIt("commonmark", { html: false });
 addWikilinkRule(md);
+addCitationRule(md);
 addSpanRule(md, STRIKETHROUGH_RE, "strikethrough");
 
 const parser = new MarkdownParser(editorSchema, md, {
@@ -144,6 +208,10 @@ const parser = new MarkdownParser(editorSchema, md, {
   wikilink: {
     node: "wikilink",
     getAttrs: (tok) => ({ target: tok.attrGet("target") ?? "" }),
+  },
+  citation: {
+    node: "citation",
+    getAttrs: (tok) => ({ wikiPage: tok.attrGet("wikiPage") ?? "" }),
   },
   strikethrough: { mark: "strikethrough" },
 });
@@ -157,6 +225,9 @@ const serializer = new MarkdownSerializer(
     ...defaultMarkdownSerializer.nodes,
     wikilink(state, node) {
       state.write(`[[${node.attrs.target as string}]]`);
+    },
+    citation(state, node) {
+      state.write(`[[cite:${node.attrs.wikiPage as string}]]`);
     },
   },
   {
@@ -207,6 +278,14 @@ const wikilinkInputRule = new InputRule(
   },
 );
 
+const citationInputRule = new InputRule(
+  /\[\[cite:([^\][\n]+)\]\]$/,
+  (state, match, start, end) => {
+    const node = editorSchema.nodes.citation.create({ wikiPage: match[1] });
+    return state.tr.replaceWith(start, end, node);
+  },
+);
+
 function buildInputRules() {
   const { nodes, marks } = editorSchema;
   return inputRules({
@@ -243,6 +322,8 @@ function buildInputRules() {
       markInputRule(/~~([^~]+)~~$/, marks.strikethrough),
       // Wikilinks: [[target]]
       wikilinkInputRule,
+      // Citations: [[cite:wiki-page]]
+      citationInputRule,
     ],
   });
 }
@@ -257,6 +338,7 @@ export function makeEditorView(
   editable: boolean,
   onChange?: (markdown: string) => void,
   onWikiLinkClick?: (target: string) => void,
+  onCitationClick?: (wikiPage: string) => void,
 ): EditorView {
   const doc = parseMarkdown(content);
   const state = EditorState.create({
@@ -287,6 +369,14 @@ export function makeEditorView(
         onWikiLinkClick
       ) {
         onWikiLinkClick(node.attrs.target as string);
+        return true;
+      }
+      if (
+        direct &&
+        node.type === editorSchema.nodes.citation &&
+        onCitationClick
+      ) {
+        onCitationClick(node.attrs.wikiPage as string);
         return true;
       }
       return false;

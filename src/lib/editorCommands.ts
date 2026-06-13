@@ -100,6 +100,18 @@ export function applyBlockquote() {
 }
 
 // ---------------------------------------------------------------------------
+// Insert a citation node at the current cursor position
+// ---------------------------------------------------------------------------
+
+export function insertCitation(wikiPage: string) {
+  withView((view) => {
+    const node = editorSchema.nodes.citation.create({ wikiPage });
+    const { state, dispatch } = view;
+    dispatch(state.tr.replaceSelectionWith(node));
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Insert arbitrary markdown text at the current cursor position
 // ---------------------------------------------------------------------------
 
