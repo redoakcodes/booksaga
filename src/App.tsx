@@ -455,7 +455,11 @@ const App: Component = () => {
               onNew={handleNew}
               onSettings={() => setSettingsOpen(true)}
               onInsertImage={() => imageInputRef.click()}
-              onInsertCitation={() => setCitationPickerOpen(true)}
+              onInsertCitation={
+                store.openFile()?.section === "manuscript"
+                  ? () => setCitationPickerOpen(true)
+                  : undefined
+              }
               isDiagram={isDiagram()}
             />
             <Show

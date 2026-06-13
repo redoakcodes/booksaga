@@ -134,15 +134,17 @@ const Toolbar: Component<Props> = (props) => {
                 >
                   <span class="toolbar-item-label">Image</span>
                 </button>
-                <button
-                  class="toolbar-menu-item"
-                  onClick={() => {
-                    setOpenMenu(null);
-                    props.onInsertCitation?.();
-                  }}
-                >
-                  <span class="toolbar-item-label">Citation</span>
-                </button>
+                <Show when={props.onInsertCitation}>
+                  <button
+                    class="toolbar-menu-item"
+                    onClick={() => {
+                      setOpenMenu(null);
+                      props.onInsertCitation?.();
+                    }}
+                  >
+                    <span class="toolbar-item-label">Citation</span>
+                  </button>
+                </Show>
               </div>
             </Show>
           </div>
