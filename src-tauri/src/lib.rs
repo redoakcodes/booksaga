@@ -81,6 +81,7 @@ fn delete_credential(key: String) -> Result<(), String> {
 // ---------------------------------------------------------------------------
 
 #[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ScannedProject {
     pub config_json: Option<String>,
     pub toc_text: Option<String>,

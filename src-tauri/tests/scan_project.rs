@@ -1,4 +1,4 @@
-use app_lib::scan_project_impl as scan_project;
+use app_lib::{scan_project_impl as scan_project, ScannedProject};
 use std::fs;
 
 fn write(dir: &tempfile::TempDir, rel: &str, content: &str) {
@@ -110,6 +110,26 @@ fn scan_returns_wiki_contents_for_index_building() {
         .find(|(f, _)| f == "elara.md")
         .unwrap();
     assert!(entry.1.contains("[[City]]"));
+}
+
+#[test]
+fn scanned_project_serializes_as_camel_case() {
+    // Regression test: TypeScript interface uses camelCase field names.
+    // If this serializes as snake_case, scan_project returns empty data to JS.
+    let s = ScannedProject {
+        config_json: Some("{}".to_string()),
+        toc_text: None,
+        chapters: vec![],
+        wiki_files: vec!["wiki.md".to_string()],
+        wiki_dirs: vec![],
+        wiki_contents: vec![],
+        diagram_files: vec![],
+        exercise_files: vec![],
+    };
+    let json = serde_json::to_string(&s).unwrap();
+    assert!(json.contains("\"wikiFiles\""), "wikiFiles must be camelCase");
+    assert!(json.contains("\"configJson\""), "configJson must be camelCase");
+    assert!(!json.contains("wiki_files"), "snake_case must not appear");
 }
 
 #[test]
