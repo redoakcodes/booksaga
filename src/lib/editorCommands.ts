@@ -16,6 +16,68 @@ function withView(fn: (view: EditorView) => void) {
 }
 
 // ---------------------------------------------------------------------------
+// Scroll to text passage
+// ---------------------------------------------------------------------------
+
+/**
+ * Locate `context` in the current editor document and scroll to it.
+ * If `text` is provided, scroll to `text` within the found context span;
+ * this handles cases where a shorter phrase appears multiple times but the
+ * broader context is unique.
+ * Returns false if the text is not found or no view is registered.
+ */
+export function scrollToText(context: string, text?: string): boolean {
+  if (!_view) return false;
+  const { state } = _view;
+  const doc = state.doc;
+
+  // doc.textContent concatenates all text nodes without separators.
+  const haystack = doc.textContent.toLowerCase();
+  const contextIdx = haystack.indexOf(context.toLowerCase());
+  if (contextIdx === -1) return false;
+
+  // Narrow to the shorter target phrase if provided and found within the context span.
+  let targetIdx = contextIdx;
+  let targetLen = context.length;
+  if (text) {
+    const inner = haystack.indexOf(text.toLowerCase(), contextIdx);
+    if (inner !== -1 && inner < contextIdx + context.length) {
+      targetIdx = inner;
+      targetLen = text.length;
+    }
+  }
+
+  // Walk text nodes to convert textContent offsets to ProseMirror positions.
+  const end = targetIdx + targetLen;
+  let from = -1;
+  let to = -1;
+  let offset = 0;
+
+  doc.descendants((node, pos) => {
+    if (to !== -1) return false;
+    if (!node.isText) return true;
+    const len = node.text!.length;
+    if (from === -1 && offset + len > targetIdx) {
+      from = pos + (targetIdx - offset);
+    }
+    if (from !== -1 && offset + len >= end) {
+      to = pos + (end - offset);
+    }
+    offset += len;
+    return true;
+  });
+
+  if (from === -1 || to === -1) return false;
+
+  _view.dispatch(
+    state.tr
+      .setSelection(TextSelection.create(doc, from, to))
+      .scrollIntoView(),
+  );
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Inline marks — applies to selection, or current word if nothing selected
 // ---------------------------------------------------------------------------
 

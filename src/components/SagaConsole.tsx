@@ -24,7 +24,7 @@ type SagaEvent =
   | { type: "tool_result"; name: string; result: string; is_error: boolean }
   | { type: "confirm_needed"; tool: string; args: Record<string, unknown> }
   | { type: "notice"; text: string }
-  | { type: "navigate"; chapter: string; text?: string }
+  | { type: "navigate"; chapter: string; context?: string; text?: string }
   | { type: "error"; message: string }
   | { type: "done" };
 
@@ -40,7 +40,7 @@ interface Props {
   onToggle: () => void;
   aiConfig: AiConfig;
   currentFile: string | null;
-  onNavigate?: (chapter: string, text?: string) => void;
+  onNavigate?: (chapter: string, context?: string, text?: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -237,7 +237,7 @@ const SagaConsole: Component<Props> = (props) => {
         break;
 
       case "navigate":
-        props.onNavigate?.(event.chapter, event.text);
+        props.onNavigate?.(event.chapter, event.context, event.text);
         break;
 
       case "error":

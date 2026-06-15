@@ -632,7 +632,7 @@ pub enum SagaEvent {
     ToolResult { name: String, result: String, is_error: bool },
     ConfirmNeeded { tool: String, args: serde_json::Value },
     Notice { text: String },
-    Navigate { chapter: String, text: Option<String> },
+    Navigate { chapter: String, context: Option<String>, text: Option<String> },
     Error { message: String },
     Done,
 }
@@ -1018,9 +1018,10 @@ async fn saga_turn(
             // Handle navigate_to_passage specially
             if name == "navigate_to_passage" && !is_error {
                 let chapter = args["chapter"].as_str().unwrap_or("").to_owned();
+                let context = args["context"].as_str().map(str::to_owned);
                 let text = args["text"].as_str().map(str::to_owned);
                 on_event
-                    .send(SagaEvent::Navigate { chapter, text })
+                    .send(SagaEvent::Navigate { chapter, context, text })
                     .map_err(|e| e.to_string())?;
             }
 
@@ -1091,6 +1092,25 @@ async fn execute_read_tool(
     let no_project = || ("No project is open.".into(), true);
 
     match name {
+        "list_manuscript_chapters" => {
+            if root_path.is_empty() {
+                return no_project();
+            }
+            let manuscript_dir = Path::new(root_path).join("manuscript");
+            let mut chapters = Vec::new();
+            collect_by_ext(&manuscript_dir, "", ".md", &mut chapters);
+            chapters.retain(|f| f != "toc.md");
+            if chapters.is_empty() {
+                ("No manuscript chapters yet.".into(), false)
+            } else {
+                let list = chapters
+                    .iter()
+                    .map(|c| format!("  - {c}"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                (format!("Manuscript chapters:\n{list}"), false)
+            }
+        }
         "list_wiki_pages" => {
             if root_path.is_empty() {
                 return no_project();

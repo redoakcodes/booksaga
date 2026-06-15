@@ -105,21 +105,30 @@ pub fn tool_definitions(has_project: bool, has_brave_key: bool) -> Vec<serde_jso
             }
         }));
         tools.push(serde_json::json!({
+            "name": "list_manuscript_chapters",
+            "description": "List all manuscript chapters with their exact filenames. Use this before navigate_to_passage to get the correct chapter filename.",
+            "input_schema": { "type": "object", "properties": {} }
+        }));
+        tools.push(serde_json::json!({
             "name": "navigate_to_passage",
-            "description": "Navigate the editor to a specific passage in a manuscript chapter, optionally highlighting a phrase.",
+            "description": "Open a manuscript chapter and scroll the editor to a specific passage.",
             "input_schema": {
                 "type": "object",
                 "properties": {
                     "chapter": {
                         "type": "string",
-                        "description": "Chapter filename or partial name (fuzzy matched)"
+                        "description": "Exact chapter filename as returned by list_manuscript_chapters (e.g. 'chapter-one.md')"
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "A distinctive surrounding passage (sentence or more) that uniquely identifies the location within the chapter"
                     },
                     "text": {
                         "type": "string",
-                        "description": "A phrase or sentence to highlight (optional)"
+                        "description": "A shorter specific phrase within context to scroll to precisely (optional; defaults to start of context)"
                     }
                 },
-                "required": ["chapter"]
+                "required": ["chapter", "context"]
             }
         }));
     }

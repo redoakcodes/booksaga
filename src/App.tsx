@@ -49,7 +49,7 @@ import {
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
-import { insertMarkdown, insertCitation } from "./lib/editorCommands";
+import { insertMarkdown, insertCitation, scrollToText } from "./lib/editorCommands";
 import { invoke } from "@tauri-apps/api/core";
 import type { TauriFileSystem } from "./lib/fs.tauri";
 import "./App.css";
@@ -427,6 +427,23 @@ const App: Component = () => {
     store.openFile()?.section === "wiki" &&
     !store.openFile()?.filename.endsWith(".mmd");
 
+  async function navigateToPassage(chapter: string, context?: string, text?: string) {
+    const project = store.project();
+    if (!project) return;
+    const match = project.chapters.find(
+      (c) => c === chapter || c.toLowerCase() === chapter.toLowerCase(),
+    );
+    if (!match) return;
+    store.setActiveSection("manuscript");
+    const already =
+      store.openFile()?.section === "manuscript" &&
+      store.openFile()?.filename === match;
+    if (!already) {
+      await handleFileSelect("manuscript", match);
+    }
+    if (context) scrollToText(context, text);
+  }
+
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
       <Show when={store.project()} fallback={<Welcome />}>
@@ -549,18 +566,8 @@ const App: Component = () => {
                   : "exercises";
             return `${dir}/${f.filename}`;
           })()}
-          onNavigate={(chapter) => {
-            const project = store.project();
-            if (!project) return;
-            const needle = chapter.toLowerCase().replace(/\.md$/, "").replace(/\s+/g, "-");
-            const match = project.chapters.find((c) => {
-              const stem = c.replace(/\.md$/, "").toLowerCase();
-              return stem === needle || stem.includes(needle) || c.toLowerCase() === chapter.toLowerCase();
-            });
-            if (match) {
-              store.setActiveSection("manuscript");
-              handleFileSelect("manuscript", match);
-            }
+          onNavigate={(chapter, context, text) => {
+            navigateToPassage(chapter, context, text);
           }}
         />
         <StatusBar />
