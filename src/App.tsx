@@ -538,7 +538,6 @@ const App: Component = () => {
           open={sagaOpen()}
           onToggle={handleToggleSaga}
           aiConfig={aiConfig()}
-          model={store.project() ?? null}
           currentFile={(() => {
             const f = store.openFile();
             if (!f) return null;
@@ -550,6 +549,19 @@ const App: Component = () => {
                   : "exercises";
             return `${dir}/${f.filename}`;
           })()}
+          onNavigate={(chapter) => {
+            const project = store.project();
+            if (!project) return;
+            const needle = chapter.toLowerCase().replace(/\.md$/, "").replace(/\s+/g, "-");
+            const match = project.chapters.find((c) => {
+              const stem = c.replace(/\.md$/, "").toLowerCase();
+              return stem === needle || stem.includes(needle) || c.toLowerCase() === chapter.toLowerCase();
+            });
+            if (match) {
+              store.setActiveSection("manuscript");
+              handleFileSelect("manuscript", match);
+            }
+          }}
         />
         <StatusBar />
         <Show when={wikiNewOpen()}>

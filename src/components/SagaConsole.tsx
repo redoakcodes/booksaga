@@ -2,25 +2,31 @@ import {
   createEffect,
   createSignal,
   For,
+  onMount,
   Show,
   type Component,
 } from "solid-js";
+import { invoke } from "@tauri-apps/api/core";
 import MarkdownIt from "markdown-it";
 import type { AiConfig } from "../lib/ai";
-import {
-  SAGA_GREETING,
-  streamSaga,
-  type AgentEvent,
-  type ApiMessage,
-  type ConfirmCallback,
-} from "../lib/saga";
-import type { ProjectModel } from "../lib/project";
+import { SAGA_GREETING } from "../lib/saga";
+import { drainChannel } from "../lib/anthropic";
 
 const md = new MarkdownIt({ breaks: true, linkify: false });
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
+
+type SagaEvent =
+  | { type: "text"; text: string }
+  | { type: "tool_call"; name: string; args: Record<string, unknown> }
+  | { type: "tool_result"; name: string; result: string; is_error: boolean }
+  | { type: "confirm_needed"; tool: string; args: Record<string, unknown> }
+  | { type: "notice"; text: string }
+  | { type: "navigate"; chapter: string; text?: string }
+  | { type: "error"; message: string }
+  | { type: "done" };
 
 type DisplayMessage =
   | { kind: "user"; content: string }
@@ -33,8 +39,8 @@ interface Props {
   open: boolean;
   onToggle: () => void;
   aiConfig: AiConfig;
-  model: ProjectModel | null;
   currentFile: string | null;
+  onNavigate?: (chapter: string, text?: string) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -43,7 +49,7 @@ interface Props {
 
 function summariseArgs(args: Record<string, unknown>): string {
   const entries = Object.entries(args)
-    .filter(([k]) => k !== "content") // skip long content fields
+    .filter(([k]) => k !== "content")
     .map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
   const joined = entries.join(", ");
   return joined.length > 60 ? joined.slice(0, 57) + "…" : joined;
@@ -65,30 +71,35 @@ const SagaConsole: Component<Props> = (props) => {
   const [input, setInput] = createSignal("");
   const [generating, setGenerating] = createSignal(false);
   const [pendingConfirm, setPendingConfirm] = createSignal<{
-    name: string;
+    tool: string;
     args: Record<string, unknown>;
   } | null>(null);
+  const [sessionId, setSessionId] = createSignal<number | null>(null);
 
-  // API history is maintained as a plain array (not reactive) so streamSaga can mutate it
-  const apiMessages: ApiMessage[] = [];
-
-  let confirmResolve: ((v: boolean) => void) | null = null;
   let inputRef!: HTMLTextAreaElement;
   let historyRef!: HTMLDivElement;
 
+  // -- Session ---------------------------------------------------------------
+
+  async function startNewSession() {
+    try {
+      const id = await invoke<number>("new_saga_session");
+      setSessionId(id);
+      setMessages([{ kind: "saga", content: SAGA_GREETING }]);
+    } catch {
+      // Not running in Tauri — session stays null, Saga input stays disabled
+    }
+  }
+
+  onMount(() => {
+    startNewSession();
+  });
+
   // -- Confirmation ----------------------------------------------------------
 
-  const confirmCallback: ConfirmCallback = (name, args) => {
-    setPendingConfirm({ name, args });
-    return new Promise((resolve) => {
-      confirmResolve = resolve;
-    });
-  };
-
-  function resolveConfirm(yes: boolean) {
-    confirmResolve?.(yes);
-    confirmResolve = null;
+  async function resolveConfirm(yes: boolean) {
     setPendingConfirm(null);
+    await invoke("resolve_saga_confirm", { confirmed: yes });
   }
 
   // -- Scroll ----------------------------------------------------------------
@@ -113,7 +124,7 @@ const SagaConsole: Component<Props> = (props) => {
       const last = updated[updated.length - 1];
       if (last?.kind === "saga" && last.streaming) {
         if (last.content === "") {
-          updated.pop(); // drop empty placeholder
+          updated.pop();
         } else {
           updated[updated.length - 1] = { ...last, streaming: false };
         }
@@ -137,25 +148,29 @@ const SagaConsole: Component<Props> = (props) => {
 
   async function handleSubmit() {
     const text = input().trim();
-    if (!text || generating()) return;
+    const sid = sessionId();
+    if (!text || generating() || sid === null) return;
     setInput("");
 
     setMessages((m) => [...m, { kind: "user", content: text }]);
-    apiMessages.push({ role: "user", content: text });
-
-    // Show something immediately while the first API call is in flight
     ensureStreamingPlaceholder();
     setGenerating(true);
 
+    const cfg = props.aiConfig.sagaModelConfig;
+
     try {
-      for await (const event of streamSaga(
-        apiMessages,
-        props.aiConfig.sagaModelConfig,
-        props.aiConfig.apiKey,
-        props.aiConfig.braveApiKey,
-        props.model,
-        props.currentFile,
-        confirmCallback,
+      for await (const event of drainChannel<SagaEvent>((ch) =>
+        invoke("saga_turn", {
+          sessionId: sid,
+          userMessage: text,
+          currentFile: props.currentFile ?? null,
+          provider: cfg.provider,
+          model: cfg.model,
+          endpoint: cfg.endpoint ?? null,
+          apiKey: props.aiConfig.apiKey ?? null,
+          braveApiKey: props.aiConfig.braveApiKey ?? null,
+          onEvent: ch,
+        }),
       )) {
         handleEvent(event);
         scrollToBottom();
@@ -175,7 +190,7 @@ const SagaConsole: Component<Props> = (props) => {
     }
   }
 
-  function handleEvent(event: AgentEvent) {
+  function handleEvent(event: SagaEvent) {
     switch (event.type) {
       case "text":
         ensureStreamingPlaceholder();
@@ -207,14 +222,30 @@ const SagaConsole: Component<Props> = (props) => {
             kind: "tool_result",
             name: event.name,
             result: event.result,
-            isError: event.isError,
+            isError: event.is_error,
           },
         ]);
+        break;
+
+      case "confirm_needed":
+        setPendingConfirm({ tool: event.tool, args: event.args });
         break;
 
       case "notice":
         finalizeStreaming();
         setMessages((m) => [...m, { kind: "notice", content: event.text }]);
+        break;
+
+      case "navigate":
+        props.onNavigate?.(event.chapter, event.text);
+        break;
+
+      case "error":
+        finalizeStreaming();
+        setMessages((m) => [
+          ...m,
+          { kind: "saga", content: `Error: ${event.message}` },
+        ]);
         break;
 
       case "done":
@@ -305,7 +336,7 @@ const SagaConsole: Component<Props> = (props) => {
               <div class="saga-confirm">
                 <p class="saga-confirm-label">
                   Saga wants to{" "}
-                  <strong>{confirm().name.replace(/_/g, " ")}</strong>:
+                  <strong>{confirm().tool.replace(/_/g, " ")}</strong>:
                 </p>
                 <pre class="saga-confirm-args">
                   {summariseArgs(confirm().args)}
@@ -340,6 +371,14 @@ const SagaConsole: Component<Props> = (props) => {
               rows={1}
               disabled={generating()}
             />
+            <button
+              class="saga-clear-btn"
+              title="Clear conversation"
+              disabled={generating()}
+              onClick={() => startNewSession()}
+            >
+              Clear
+            </button>
           </div>
         </div>
       </div>
