@@ -74,7 +74,26 @@ export function scrollToText(context: string, text?: string): boolean {
       .setSelection(TextSelection.create(doc, from, to))
       .scrollIntoView(),
   );
+
+  flashHighlight(from, to);
   return true;
+}
+
+function flashHighlight(from: number, to: number) {
+  if (!_view) return;
+  try {
+    const domFrom = _view.domAtPos(from);
+    const domTo = _view.domAtPos(to);
+    const range = document.createRange();
+    range.setStart(domFrom.node, domFrom.offset);
+    range.setEnd(domTo.node, domTo.offset);
+    const span = document.createElement("span");
+    span.className = "highlight-flash";
+    range.surroundContents(span);
+    setTimeout(() => span.replaceWith(...span.childNodes), 1600);
+  } catch {
+    // surroundContents throws if the range crosses element boundaries; ignore.
+  }
 }
 
 // ---------------------------------------------------------------------------

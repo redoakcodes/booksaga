@@ -696,6 +696,16 @@ html, body, #root {
 /* Selection */
 .ProseMirror ::selection { background: var(--accent-selection); }
 
+/* Saga navigate-to-passage highlight */
+@keyframes highlight-fade {
+  0%   { background: rgba(255, 210, 50, 0.45); }
+  100% { background: transparent; }
+}
+.highlight-flash {
+  animation: highlight-fade 1.6s ease-out forwards;
+  border-radius: 2px;
+}
+
 /* Wiki links */
 .wikilink {
   color: var(--accent);
