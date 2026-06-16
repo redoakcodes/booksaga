@@ -70,9 +70,7 @@ export function scrollToText(context: string, text?: string): boolean {
   if (from === -1 || to === -1) return false;
 
   _view.dispatch(
-    state.tr
-      .setSelection(TextSelection.create(doc, from, to))
-      .scrollIntoView(),
+    state.tr.setSelection(TextSelection.create(doc, from, to)).scrollIntoView(),
   );
 
   flashHighlight(from, to);

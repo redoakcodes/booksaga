@@ -49,7 +49,11 @@ import {
 import { createExerciseFile } from "./lib/project";
 import promptsData from "./assets/prompts.json";
 import type { PromptEntry, AiConfig } from "./lib/ai";
-import { insertMarkdown, insertCitation, scrollToText } from "./lib/editorCommands";
+import {
+  insertMarkdown,
+  insertCitation,
+  scrollToText,
+} from "./lib/editorCommands";
 import { invoke } from "@tauri-apps/api/core";
 import type { TauriFileSystem } from "./lib/fs.tauri";
 import "./App.css";
@@ -427,7 +431,11 @@ const App: Component = () => {
     store.openFile()?.section === "wiki" &&
     !store.openFile()?.filename.endsWith(".mmd");
 
-  async function navigateToPassage(chapter: string, context?: string, text?: string) {
+  async function navigateToPassage(
+    chapter: string,
+    context?: string,
+    text?: string,
+  ) {
     const project = store.project();
     if (!project) return;
     const match = project.chapters.find(
