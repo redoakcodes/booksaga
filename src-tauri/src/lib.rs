@@ -400,6 +400,24 @@ async fn anthropic_stream(
 // Ollama streaming
 // ---------------------------------------------------------------------------
 
+/// Remove `<think>...</think>` blocks that some models inline into content.
+fn strip_think_tags(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut rest = s;
+    while let Some(start) = rest.find("<think>") {
+        out.push_str(&rest[..start]);
+        rest = &rest[start + 7..];
+        if let Some(end) = rest.find("</think>") {
+            rest = &rest[end + 8..];
+        } else {
+            // Unclosed tag — discard the remainder of this chunk.
+            rest = "";
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 fn is_tools_unsupported(text: &str) -> bool {
     let l = text.to_lowercase();
     l.contains("does not support tools")
@@ -483,6 +501,7 @@ where
     let mut body = serde_json::json!({
         "model": model,
         "stream": true,
+        "think": false,   // suppress thinking tokens for thinking models (e.g. Gemma)
         "messages": ollama_msgs,
     });
 
@@ -549,7 +568,8 @@ where
                 }
                 return Err(format!("Ollama error: {err}"));
             }
-            let content = ev["message"]["content"].as_str().unwrap_or("").to_owned();
+            let raw = ev["message"]["content"].as_str().unwrap_or("").to_owned();
+            let content = strip_think_tags(&raw);
             if !content.is_empty() {
                 on_text(content.clone())?;
                 full_text.push_str(&content);
