@@ -1381,13 +1381,9 @@ html, body, #root {
 .saga-tab:hover { color: var(--accent); background: var(--bg); }
 
 .saga-panel {
-  position: absolute;
-  bottom: var(--status-height);
-  left: 0;
-  right: 0;
+  position: relative;
   height: 0;
   overflow: hidden;
-  z-index: 51;
   transition: height 0.25s ease;
 }
 
