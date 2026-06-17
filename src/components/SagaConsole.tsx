@@ -175,14 +175,24 @@ const SagaConsole: Component<Props> = (props) => {
         scrollToBottom();
       }
     } catch (e) {
-      finalizeStreaming();
-      setMessages((m) => [
-        ...m,
-        {
-          kind: "saga",
-          content: e instanceof Error ? e.message : "An error occurred.",
-        },
-      ]);
+      const msg =
+        e instanceof Error && e.message
+          ? e.message
+          : String(e ?? "Unknown error");
+      // If the placeholder is still there (no done event was received), replace it.
+      setMessages((m) => {
+        const updated = [...m];
+        const last = updated[updated.length - 1];
+        if (last?.kind === "saga" && last.streaming) {
+          updated[updated.length - 1] = {
+            kind: "notice",
+            content: `Error: ${msg}`,
+          };
+        } else {
+          updated.push({ kind: "notice", content: `Error: ${msg}` });
+        }
+        return updated;
+      });
     } finally {
       setGenerating(false);
       inputRef?.focus();
@@ -265,7 +275,21 @@ const SagaConsole: Component<Props> = (props) => {
         break;
 
       case "done":
-        finalizeStreaming();
+        setMessages((m) => {
+          const updated = [...m];
+          const last = updated[updated.length - 1];
+          if (last?.kind === "saga" && last.streaming) {
+            if (last.content === "") {
+              updated[updated.length - 1] = {
+                kind: "notice",
+                content: "No response received from model.",
+              };
+            } else {
+              updated[updated.length - 1] = { ...last, streaming: false };
+            }
+          }
+          return updated;
+        });
         break;
     }
   }
