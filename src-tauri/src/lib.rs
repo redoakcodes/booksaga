@@ -400,6 +400,16 @@ async fn anthropic_stream(
 // Ollama streaming
 // ---------------------------------------------------------------------------
 
+/// Coerce a tool-call arguments value to a JSON object.
+/// Some Ollama models encode `arguments` as a JSON string instead of an object.
+fn coerce_tool_args(v: &serde_json::Value) -> serde_json::Value {
+    if let Some(s) = v.as_str() {
+        serde_json::from_str(s).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        v.clone()
+    }
+}
+
 /// Remove `<think>...</think>` blocks that some models inline into content.
 fn strip_think_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -610,7 +620,7 @@ where
     } else {
         for (i, call) in final_tool_calls.iter().enumerate() {
             let name = call["function"]["name"].as_str().unwrap_or("");
-            let args = &call["function"]["arguments"];
+            let args = coerce_tool_args(&call["function"]["arguments"]);
             content_blocks.push(serde_json::json!({
                 "type": "tool_use",
                 "id": format!("call-{i}"),

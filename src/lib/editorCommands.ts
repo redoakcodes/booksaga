@@ -26,24 +26,39 @@ function withView(fn: (view: EditorView) => void) {
  * broader context is unique.
  * Returns false if the text is not found or no view is registered.
  */
+// Strip common inline markdown syntax so context from raw markdown matches
+// rendered doc.textContent (e.g. "**bold**" → "bold").
+function stripInlineMarkdown(s: string): string {
+  return s
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/~~(.+?)~~/g, "$1")
+    .replace(/`(.+?)`/g, "$1");
+}
+
 export function scrollToText(context: string, text?: string): boolean {
   if (!_view) return false;
   const { state } = _view;
   const doc = state.doc;
 
+  const normContext = stripInlineMarkdown(context);
+  const normText = text ? stripInlineMarkdown(text) : undefined;
+
   // doc.textContent concatenates all text nodes without separators.
   const haystack = doc.textContent.toLowerCase();
-  const contextIdx = haystack.indexOf(context.toLowerCase());
+  const contextIdx = haystack.indexOf(normContext.toLowerCase());
   if (contextIdx === -1) return false;
 
   // Narrow to the shorter target phrase if provided and found within the context span.
   let targetIdx = contextIdx;
-  let targetLen = context.length;
-  if (text) {
-    const inner = haystack.indexOf(text.toLowerCase(), contextIdx);
-    if (inner !== -1 && inner < contextIdx + context.length) {
+  let targetLen = normContext.length;
+  if (normText) {
+    const inner = haystack.indexOf(normText.toLowerCase(), contextIdx);
+    if (inner !== -1 && inner < contextIdx + normContext.length) {
       targetIdx = inner;
-      targetLen = text.length;
+      targetLen = normText.length;
     }
   }
 
