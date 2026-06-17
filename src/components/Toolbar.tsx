@@ -25,21 +25,30 @@ interface Props {
   onInsertImage?: () => void;
   onInsertCitation?: () => void;
   isDiagram?: boolean;
+  isManuscript?: boolean;
+  onToolsEditor?: () => void;
 }
 
-type OpenMenu = "menu" | "format" | "insert" | null;
+type OpenMenu = "menu" | "format" | "insert" | "tools" | null;
 
 const Toolbar: Component<Props> = (props) => {
   const [openMenu, setOpenMenu] = createSignal<OpenMenu>(null);
   let menuRef!: HTMLDivElement;
   let formatRef!: HTMLDivElement;
   let insertRef!: HTMLDivElement;
+  let toolsRef!: HTMLDivElement;
 
   createEffect(() => {
     const which = openMenu();
     if (!which) return;
     const ref =
-      which === "menu" ? menuRef : which === "format" ? formatRef : insertRef;
+      which === "menu"
+        ? menuRef
+        : which === "format"
+          ? formatRef
+          : which === "tools"
+            ? toolsRef
+            : insertRef;
     const handler = (e: MouseEvent) => {
       if (!ref.contains(e.target as Node)) setOpenMenu(null);
     };
@@ -242,6 +251,32 @@ const Toolbar: Component<Props> = (props) => {
                 >
                   <span class="toolbar-item-label">Code</span>
                   <span class="toolbar-item-hint">`</span>
+                </button>
+              </div>
+            </Show>
+          </div>
+        </Show>
+
+        {/* ── Tools (manuscript only) ── */}
+        <Show when={props.isManuscript}>
+          <div class="toolbar-menu" ref={toolsRef}>
+            <button
+              class="toolbar-menu-btn"
+              classList={{ active: openMenu() === "tools" }}
+              onClick={() => toggle("tools")}
+            >
+              Tools
+            </button>
+            <Show when={openMenu() === "tools"}>
+              <div class="toolbar-dropdown">
+                <button
+                  class="toolbar-menu-item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    props.onToolsEditor?.();
+                  }}
+                >
+                  <span class="toolbar-item-label">Editor</span>
                 </button>
               </div>
             </Show>

@@ -41,6 +41,7 @@ interface Props {
   aiConfig: AiConfig;
   currentFile: string | null;
   onNavigate?: (chapter: string, context?: string, text?: string) => void;
+  workflowTrigger?: { message: string; id: number };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,11 +147,9 @@ const SagaConsole: Component<Props> = (props) => {
 
   // -- Submit ----------------------------------------------------------------
 
-  async function handleSubmit() {
-    const text = input().trim();
+  async function submitMessage(text: string) {
     const sid = sessionId();
     if (!text || generating() || sid === null) return;
-    setInput("");
 
     setMessages((m) => [...m, { kind: "user", content: text }]);
     ensureStreamingPlaceholder();
@@ -189,6 +188,23 @@ const SagaConsole: Component<Props> = (props) => {
       inputRef?.focus();
     }
   }
+
+  async function handleSubmit() {
+    const text = input().trim();
+    if (!text) return;
+    setInput("");
+    await submitMessage(text);
+  }
+
+  // -- Workflow trigger -------------------------------------------------------
+
+  createEffect(() => {
+    const trigger = props.workflowTrigger;
+    if (!trigger) return;
+    startNewSession().then(() => {
+      void submitMessage(trigger.message);
+    });
+  });
 
   function handleEvent(event: SagaEvent) {
     switch (event.type) {

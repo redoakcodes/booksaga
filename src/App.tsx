@@ -93,8 +93,17 @@ const App: Component = () => {
   const [credentials, setCredentials] = createSignal<Credentials>({});
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
+  const [sagaWorkflowTrigger, setSagaWorkflowTrigger] = createSignal<
+    | {
+        message: string;
+        id: number;
+      }
+    | undefined
+  >(undefined);
   const [citationPickerOpen, setCitationPickerOpen] = createSignal(false);
   const isDiagram = () => store.openFile()?.filename.endsWith(".mmd") ?? false;
+  const isManuscript = () =>
+    store.openFile()?.section === "manuscript" && !isDiagram();
   const prompts: PromptEntry[] = promptsData;
 
   const wikiTitleMap = () =>
@@ -452,6 +461,25 @@ const App: Component = () => {
     if (context) scrollToText(context, text);
   }
 
+  function handleEditorWorkflow() {
+    const file = store.openFile();
+    if (!file || file.section !== "manuscript") return;
+    setSagaOpen(true);
+    setSagaWorkflowTrigger({
+      id: Date.now(),
+      message: `Please act as a line editor for my manuscript chapter "${file.filename}".
+
+Read the full text using read_manuscript_excerpt, then work through it with your editorial eye. Present your suggestions one at a time:
+
+1. Use navigate_to_passage to highlight the relevant passage in the editor
+2. Describe the issue — unclear phrasing, weak word choice, pacing, repetition, etc.
+3. Suggest a specific improvement
+4. Wait for my response before continuing to the next suggestion
+
+I'll let you know whether to proceed, accept, or skip each one.`,
+    });
+  }
+
   return (
     <div class="app" onKeyDown={handleKeyDown} tabIndex={-1}>
       <Show when={store.project()} fallback={<Welcome />}>
@@ -486,6 +514,8 @@ const App: Component = () => {
                   : undefined
               }
               isDiagram={isDiagram()}
+              isManuscript={isManuscript()}
+              onToolsEditor={handleEditorWorkflow}
             />
             <Show
               when={store.openFile()}
@@ -577,6 +607,7 @@ const App: Component = () => {
           onNavigate={(chapter, context, text) => {
             navigateToPassage(chapter, context, text);
           }}
+          workflowTrigger={sagaWorkflowTrigger()}
         />
         <StatusBar />
         <Show when={wikiNewOpen()}>
