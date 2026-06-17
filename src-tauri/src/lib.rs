@@ -574,8 +574,27 @@ where
                 on_text(content.clone())?;
                 full_text.push_str(&content);
             }
-            if ev["done"].as_bool().unwrap_or(false) {
-                if let Some(calls) = ev["message"]["tool_calls"].as_array() {
+            // Tool calls arrive on a done:false chunk in Ollama — collect from any message.
+            if let Some(calls) = ev["message"]["tool_calls"].as_array() {
+                if !calls.is_empty() {
+                    final_tool_calls = calls.clone();
+                }
+            }
+        }
+    }
+
+    // Process any buffered data not terminated by a newline.
+    let trailing = buf.trim().to_owned();
+    if !trailing.is_empty() {
+        if let Ok(ev) = serde_json::from_str::<serde_json::Value>(&trailing) {
+            let raw = ev["message"]["content"].as_str().unwrap_or("").to_owned();
+            let content = strip_think_tags(&raw);
+            if !content.is_empty() {
+                on_text(content.clone())?;
+                full_text.push_str(&content);
+            }
+            if let Some(calls) = ev["message"]["tool_calls"].as_array() {
+                if !calls.is_empty() {
                     final_tool_calls = calls.clone();
                 }
             }
