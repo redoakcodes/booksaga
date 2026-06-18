@@ -3,7 +3,7 @@ import { makeEditorView } from "../lib/prosemirror";
 import {
   registerView,
   findAllMatchPositions,
-  selectMatch,
+  scrollAndHighlight,
 } from "../lib/editorCommands";
 import type { EditorView } from "prosemirror-view";
 
@@ -58,7 +58,7 @@ describe("findAllMatchPositions", () => {
   });
 });
 
-describe("selectMatch", () => {
+describe("scrollAndHighlight", () => {
   let container: HTMLDivElement;
   let view: EditorView;
 
@@ -75,12 +75,17 @@ describe("selectMatch", () => {
     document.body.removeChild(container);
   });
 
-  it("sets the editor selection to the given range", () => {
+  it("does not change the editor selection", () => {
+    const before = view.state.selection.from;
     const results = findAllMatchPositions("find");
     expect(results).toHaveLength(1);
-    const { from, to } = results[0];
-    selectMatch(from, to);
-    expect(view.state.selection.from).toBe(from);
-    expect(view.state.selection.to).toBe(to);
+    scrollAndHighlight(results[0].from, results[0].to);
+    expect(view.state.selection.from).toBe(before);
+  });
+
+  it("does not throw for valid positions", () => {
+    const results = findAllMatchPositions("me");
+    expect(results).toHaveLength(1);
+    expect(() => scrollAndHighlight(results[0].from, results[0].to)).not.toThrow();
   });
 });

@@ -148,13 +148,19 @@ export function findAllMatchPositions(
   return results;
 }
 
-export function selectMatch(from: number, to: number): void {
+export function scrollAndHighlight(from: number, to: number): void {
   if (!_view) return;
-  const { state } = _view;
-  _view.dispatch(
-    state.tr.setSelection(TextSelection.create(state.doc, from, to)).scrollIntoView(),
-  );
-  _view.focus();
+  try {
+    const coords = _view.coordsAtPos(from);
+    const scrollEl = _view.dom.parentElement;
+    if (scrollEl) {
+      const rect = scrollEl.getBoundingClientRect();
+      const targetTop =
+        scrollEl.scrollTop + coords.top - rect.top - rect.height / 2;
+      scrollEl.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+    }
+  } catch { }
+  flashHighlight(from, to);
 }
 
 // ---------------------------------------------------------------------------

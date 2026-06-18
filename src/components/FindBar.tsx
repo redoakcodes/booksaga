@@ -5,7 +5,7 @@ import {
   Show,
   type Component,
 } from "solid-js";
-import { findAllMatchPositions, selectMatch } from "../lib/editorCommands";
+import { findAllMatchPositions, scrollAndHighlight } from "../lib/editorCommands";
 
 interface Props {
   fileKey: string;
@@ -39,7 +39,6 @@ const FindBar: Component<Props> = (props) => {
     const m = findAllMatchPositions(q);
     setMatches(m);
     setIdx(0);
-    if (m.length > 0) selectMatch(m[0].from, m[0].to);
   });
 
   function navigate(dir: 1 | -1) {
@@ -47,7 +46,7 @@ const FindBar: Component<Props> = (props) => {
     if (!m.length) return;
     const next = (idx() + dir + m.length) % m.length;
     setIdx(next);
-    selectMatch(m[next].from, m[next].to);
+    scrollAndHighlight(m[next].from, m[next].to);
   }
 
   function handleKeyDown(e: KeyboardEvent) {

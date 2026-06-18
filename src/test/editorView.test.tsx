@@ -44,7 +44,7 @@ vi.mock("../lib/editorCommands", () => ({
   applyBlockquote: vi.fn(),
   applyInlineCode: vi.fn(),
   findAllMatchPositions: vi.fn(() => []),
-  selectMatch: vi.fn(),
+  scrollAndHighlight: vi.fn(),
   scrollToText: vi.fn(),
   insertMarkdown: vi.fn(),
   insertCitation: vi.fn(),
