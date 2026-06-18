@@ -2,6 +2,11 @@ import { TextSelection } from "prosemirror-state";
 import { toggleMark, setBlockType, wrapIn } from "prosemirror-commands";
 import type { EditorView } from "prosemirror-view";
 import { editorSchema } from "./prosemirror";
+import {
+  findHighlightKey,
+  Decoration,
+  DecorationSet,
+} from "./findHighlight";
 
 let _view: EditorView | null = null;
 
@@ -94,19 +99,13 @@ export function scrollToText(context: string, text?: string): boolean {
 
 function flashHighlight(from: number, to: number) {
   if (!_view) return;
-  try {
-    const domFrom = _view.domAtPos(from);
-    const domTo = _view.domAtPos(to);
-    const range = document.createRange();
-    range.setStart(domFrom.node, domFrom.offset);
-    range.setEnd(domTo.node, domTo.offset);
-    const span = document.createElement("span");
-    span.className = "highlight-flash";
-    range.surroundContents(span);
-    setTimeout(() => span.replaceWith(...span.childNodes), 1600);
-  } catch {
-    // surroundContents throws if the range crosses element boundaries; ignore.
-  }
+  const deco = DecorationSet.create(_view.state.doc, [
+    Decoration.inline(from, to, { class: "highlight-flash" }),
+  ]);
+  _view.dispatch(_view.state.tr.setMeta(findHighlightKey, deco));
+  setTimeout(() => {
+    if (_view) _view.dispatch(_view.state.tr.setMeta(findHighlightKey, "clear"));
+  }, 1600);
 }
 
 // ---------------------------------------------------------------------------

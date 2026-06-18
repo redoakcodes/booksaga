@@ -19,6 +19,7 @@ import {
 } from "prosemirror-markdown";
 import MarkdownIt from "markdown-it";
 import { nativeSpellCheck } from "./platform";
+import { findHighlightPlugin } from "./findHighlight";
 
 const WIKILINK_RE = /\[\[([^\][\n]+)\]\]/g;
 const CITATION_RE = /\[\[cite:([^\][\n]+)\]\]/g;
@@ -348,6 +349,7 @@ export function makeEditorView(
       keymap({ "Mod-z": undo, "Mod-y": redo, "Mod-Shift-z": redo }),
       keymap(baseKeymap),
       buildInputRules(),
+      findHighlightPlugin,
     ],
   });
 
