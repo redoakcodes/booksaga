@@ -215,6 +215,7 @@ enum LlmCallResult {
 
 async fn call_llm_anthropic<F>(
     api_key: &str,
+    base_url: &str,
     model: &str,
     system: &str,
     messages: &serde_json::Value,
@@ -237,9 +238,10 @@ where
         }
     }
 
+    let url = format!("{}/v1/messages", base_url.trim_end_matches('/'));
     let client = reqwest::Client::new();
     let resp = client
-        .post("https://api.anthropic.com/v1/messages")
+        .post(&url)
         .header("x-api-key", api_key)
         .header("anthropic-version", "2023-06-01")
         .json(&body)
@@ -372,6 +374,7 @@ where
 #[tauri::command]
 async fn anthropic_stream(
     api_key: String,
+    base_url: Option<String>,
     model: String,
     system: String,
     messages_json: String,
@@ -383,7 +386,8 @@ async fn anthropic_stream(
     let tools: serde_json::Value =
         serde_json::from_str(&tools_json).map_err(|e| format!("invalid tools: {e}"))?;
 
-    match call_llm_anthropic(&api_key, &model, &system, &messages, &tools, |text| {
+    let url = base_url.as_deref().unwrap_or("https://api.anthropic.com");
+    match call_llm_anthropic(&api_key, url, &model, &system, &messages, &tools, |text| {
         on_event.send(LlmEvent::TextDelta { text }).map_err(|e| e.to_string())
     })
     .await?
@@ -907,7 +911,16 @@ async fn saga_turn(
             let key = api_key
                 .as_deref()
                 .ok_or("No Anthropic API key configured.")?;
-            call_llm_anthropic(key, &model, &system, &messages_val, &tools_json, move |text| {
+            call_llm_anthropic(key, "https://api.anthropic.com", &model, &system, &messages_val, &tools_json, move |text| {
+                on_event_clone
+                    .send(SagaEvent::Text { text })
+                    .map_err(|e| e.to_string())
+            })
+            .await
+        } else if provider == "lmstudio" {
+            let ep = endpoint.as_deref().unwrap_or("http://localhost:1234");
+            let key = api_key.as_deref().unwrap_or("lm-studio");
+            call_llm_anthropic(key, ep, &model, &system, &messages_val, &tools_json, move |text| {
                 on_event_clone
                     .send(SagaEvent::Text { text })
                     .map_err(|e| e.to_string())
@@ -950,6 +963,24 @@ async fn saga_turn(
                     let key = api_key.as_deref().ok_or("No Anthropic API key.")?;
                     call_llm_anthropic(
                         key,
+                        "https://api.anthropic.com",
+                        &model,
+                        &system,
+                        &messages_val2,
+                        &empty_tools,
+                        move |text| {
+                            on_event2
+                                .send(SagaEvent::Text { text })
+                                .map_err(|e| e.to_string())
+                        },
+                    )
+                    .await
+                } else if provider == "lmstudio" {
+                    let ep = endpoint.as_deref().unwrap_or("http://localhost:1234");
+                    let key = api_key.as_deref().unwrap_or("lm-studio");
+                    call_llm_anthropic(
+                        key,
+                        ep,
                         &model,
                         &system,
                         &messages_val2,

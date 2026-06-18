@@ -39,6 +39,20 @@ describe("resolveModel", () => {
     expect(m.model).toBe("llama3.1");
   });
 
+  it("uses lmstudio sagaModel override when set", () => {
+    const llm = {
+      sagaModel: {
+        provider: "lmstudio" as const,
+        model: "llama-3.2-3b-instruct",
+        endpoint: "http://localhost:1234",
+      },
+    };
+    const m = resolveModel(llm, "saga");
+    expect(m.provider).toBe("lmstudio");
+    expect(m.model).toBe("llama-3.2-3b-instruct");
+    expect(m.endpoint).toBe("http://localhost:1234");
+  });
+
   it("uses exerciseModel override when set", () => {
     const llm = {
       exerciseModel: { provider: "ollama" as const, model: "mistral" },
@@ -82,6 +96,25 @@ describe("loadSettings", () => {
     const s = await loadSettings();
     expect(s.theme).toBe("noire");
     expect(s.llm.model?.model).toBe("llama3.1");
+  });
+
+  it("parses lmstudio provider and preserves endpoint", async () => {
+    mockInvoke.mockResolvedValueOnce(
+      JSON.stringify({
+        theme: "dark",
+        llm: {
+          model: {
+            provider: "lmstudio",
+            model: "llama-3.2-3b-instruct",
+            endpoint: "http://localhost:1234",
+          },
+        },
+      }),
+    );
+    const s = await loadSettings();
+    expect(s.llm.model?.provider).toBe("lmstudio");
+    expect(s.llm.model?.model).toBe("llama-3.2-3b-instruct");
+    expect(s.llm.model?.endpoint).toBe("http://localhost:1234");
   });
 
   it("falls back to dark theme for unknown theme value", async () => {

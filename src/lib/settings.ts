@@ -10,7 +10,7 @@ export type Theme =
   | "romance"
   | "horror";
 
-export type Provider = "anthropic" | "ollama";
+export type Provider = "anthropic" | "ollama" | "lmstudio";
 
 export interface ModelConfig {
   provider: Provider;
@@ -51,7 +51,12 @@ const DEFAULTS: AppSettings = { theme: "dark", llm: {} };
 function parseModelConfig(raw: unknown): ModelConfig | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const r = raw as Record<string, unknown>;
-  const provider: Provider = r.provider === "ollama" ? "ollama" : "anthropic";
+  const provider: Provider =
+    r.provider === "ollama"
+      ? "ollama"
+      : r.provider === "lmstudio"
+        ? "lmstudio"
+        : "anthropic";
   const model = typeof r.model === "string" ? r.model.trim() : "";
   if (!model) return undefined;
   const endpoint =

@@ -68,17 +68,19 @@ export async function* drainChannel<T>(
     throw error instanceof Error ? error : new Error(String(error));
 }
 
-/** Stream a single Anthropic API request. */
+/** Stream a single Anthropic-protocol request (works for Anthropic and LM Studio). */
 export async function* streamAnthropicRequest(
   apiKey: string,
   model: string,
   system: string,
   messages: unknown[],
   tools: unknown[],
+  baseUrl?: string,
 ): AsyncGenerator<LlmStreamEvent> {
   yield* drainChannel<LlmStreamEvent>((ch) =>
     invoke("anthropic_stream", {
       apiKey,
+      baseUrl: baseUrl ?? null,
       model,
       system,
       messagesJson: JSON.stringify(messages),
@@ -102,13 +104,10 @@ export async function* streamLlmRequest(
         "No Anthropic API key configured. Add your key in Menu → Settings.",
       );
     }
-    yield* streamAnthropicRequest(
-      apiKey,
-      modelConfig.model,
-      system,
-      messages,
-      tools,
-    );
+    yield* streamAnthropicRequest(apiKey, modelConfig.model, system, messages, tools);
+  } else if (modelConfig.provider === "lmstudio") {
+    const endpoint = modelConfig.endpoint ?? "http://localhost:1234";
+    yield* streamAnthropicRequest("lm-studio", modelConfig.model, system, messages, tools, endpoint);
   } else {
     const endpoint = modelConfig.endpoint ?? "http://localhost:11434";
     yield* drainChannel<LlmStreamEvent>((ch) =>

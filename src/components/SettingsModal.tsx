@@ -65,6 +65,7 @@ const ModelFields: Component<ModelFieldsProps> = (props) => (
         {props.showEmpty && <option value="">— use base setting —</option>}
         <option value="anthropic">Anthropic</option>
         <option value="ollama">Ollama (local)</option>
+        <option value="lmstudio">LM Studio (local)</option>
       </select>
     </div>
 
@@ -80,13 +81,17 @@ const ModelFields: Component<ModelFieldsProps> = (props) => (
           value={props.model}
           onInput={(e) => props.onModel(e.currentTarget.value)}
           placeholder={
-            props.provider === "ollama" ? "llama3.1" : "claude-sonnet-4-6"
+            props.provider === "ollama"
+              ? "llama3.1"
+              : props.provider === "lmstudio"
+                ? "llama-3.2-3b-instruct"
+                : "claude-sonnet-4-6"
           }
           autocomplete="off"
         />
       </div>
 
-      <Show when={props.provider === "ollama"}>
+      <Show when={props.provider === "ollama" || props.provider === "lmstudio"}>
         <div class="new-modal-field">
           <label class="new-modal-label" for={`${props.idPrefix}-endpoint`}>
             Endpoint
@@ -97,7 +102,11 @@ const ModelFields: Component<ModelFieldsProps> = (props) => (
             type="text"
             value={props.endpoint}
             onInput={(e) => props.onEndpoint(e.currentTarget.value)}
-            placeholder="http://localhost:11434"
+            placeholder={
+              props.provider === "lmstudio"
+                ? "http://localhost:1234"
+                : "http://localhost:11434"
+            }
             autocomplete="off"
           />
         </div>
