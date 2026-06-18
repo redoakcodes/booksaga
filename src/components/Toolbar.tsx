@@ -27,6 +27,7 @@ interface Props {
   isDiagram?: boolean;
   isManuscript?: boolean;
   onToolsEditor?: () => void;
+  onFind?: () => void;
 }
 
 type OpenMenu = "menu" | "format" | "insert" | "tools" | null;
@@ -108,6 +109,19 @@ const Toolbar: Component<Props> = (props) => {
                 </span>
                 <span class="toolbar-item-hint">{modKeyLabel}E</span>
               </button>
+              <Show when={props.onFind}>
+                <div class="toolbar-divider" />
+                <button
+                  class="toolbar-menu-item toolbar-fmt-item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    props.onFind!();
+                  }}
+                >
+                  <span class="toolbar-item-label">Find</span>
+                  <span class="toolbar-item-hint">{modKeyLabel}F</span>
+                </button>
+              </Show>
               <div class="toolbar-divider" />
               <button
                 class="toolbar-menu-item"

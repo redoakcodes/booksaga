@@ -35,6 +35,7 @@ import ExerciseNewModal from "./components/ExerciseNewModal";
 import DiagramEditor from "./components/DiagramEditor";
 import DiagramSourceEditor from "./components/DiagramSourceEditor";
 import SagaConsole from "./components/SagaConsole";
+import FindBar from "./components/FindBar";
 import { updateWikiIndex, normalize } from "./lib/wikiIndex";
 import {
   loadSettings,
@@ -93,6 +94,7 @@ const App: Component = () => {
   const [credentials, setCredentials] = createSignal<Credentials>({});
   const [exerciseNewOpen, setExerciseNewOpen] = createSignal(false);
   const [sagaOpen, setSagaOpen] = createSignal(false);
+  const [findOpen, setFindOpen] = createSignal(false);
   const [sagaWorkflowTrigger, setSagaWorkflowTrigger] = createSignal<
     | {
         message: string;
@@ -430,6 +432,12 @@ const App: Component = () => {
       e.preventDefault();
       handleToggleSaga();
     }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "f") {
+      if (store.openFile() && !isDiagram()) {
+        e.preventDefault();
+        setFindOpen(true);
+      }
+    }
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "n") {
       e.preventDefault();
       handleNew();
@@ -516,7 +524,18 @@ I'll let you know whether to proceed, accept, or skip each one.`,
               isDiagram={isDiagram()}
               isManuscript={isManuscript()}
               onToolsEditor={handleEditorWorkflow}
+              onFind={
+                store.openFile() && !isDiagram()
+                  ? () => setFindOpen(true)
+                  : undefined
+              }
             />
+            <Show when={findOpen() && store.openFile() && !isDiagram()}>
+              <FindBar
+                fileKey={`${store.openFile()!.section}:${store.openFile()!.filename}`}
+                onClose={() => setFindOpen(false)}
+              />
+            </Show>
             <Show
               when={store.openFile()}
               fallback={

@@ -110,6 +110,54 @@ function flashHighlight(from: number, to: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Find — locate all occurrences of a string in the document
+// ---------------------------------------------------------------------------
+
+export function findAllMatchPositions(
+  query: string,
+): { from: number; to: number }[] {
+  if (!_view || !query) return [];
+  const { doc } = _view.state;
+
+  const textNodes: Array<{ pos: number; text: string }> = [];
+  doc.descendants((node, pos) => {
+    if (node.isText) textNodes.push({ pos, text: node.text! });
+    return true;
+  });
+  const flat = textNodes.map((n) => n.text).join("").toLowerCase();
+  const needle = query.toLowerCase();
+  const results: { from: number; to: number }[] = [];
+
+  let searchFrom = 0;
+  while (true) {
+    const start = flat.indexOf(needle, searchFrom);
+    if (start === -1) break;
+    const end = start + needle.length;
+
+    // Mirrors scrollToText: strict > for start, >= for end
+    let from = -1, to = -1, offset = 0;
+    for (const n of textNodes) {
+      const len = n.text.length;
+      if (from === -1 && offset + len > start) from = n.pos + (start - offset);
+      if (from !== -1 && offset + len >= end) { to = n.pos + (end - offset); break; }
+      offset += len;
+    }
+    if (from !== -1 && to !== -1) results.push({ from, to });
+    searchFrom = start + 1;
+  }
+  return results;
+}
+
+export function selectMatch(from: number, to: number): void {
+  if (!_view) return;
+  const { state } = _view;
+  _view.dispatch(
+    state.tr.setSelection(TextSelection.create(state.doc, from, to)).scrollIntoView(),
+  );
+  _view.focus();
+}
+
+// ---------------------------------------------------------------------------
 // Inline marks — applies to selection, or current word if nothing selected
 // ---------------------------------------------------------------------------
 
