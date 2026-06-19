@@ -432,7 +432,11 @@ const App: Component = () => {
       e.preventDefault();
       handleToggleSaga();
     }
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "f") {
+    if (
+      (e.ctrlKey || e.metaKey) &&
+      !e.shiftKey &&
+      e.key.toLowerCase() === "f"
+    ) {
       if (store.openFile() && !isDiagram()) {
         e.preventDefault();
         setFindOpen(true);

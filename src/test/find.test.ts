@@ -67,7 +67,13 @@ describe("replaceMatch", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    view = makeEditorView(container, "Hello world.", true, undefined, undefined);
+    view = makeEditorView(
+      container,
+      "Hello world.",
+      true,
+      undefined,
+      undefined,
+    );
     registerView(view);
   });
 
@@ -138,7 +144,13 @@ describe("scrollAndHighlight", () => {
   beforeEach(() => {
     container = document.createElement("div");
     document.body.appendChild(container);
-    view = makeEditorView(container, "Find me here.", true, undefined, undefined);
+    view = makeEditorView(
+      container,
+      "Find me here.",
+      true,
+      undefined,
+      undefined,
+    );
     registerView(view);
   });
 
@@ -159,6 +171,8 @@ describe("scrollAndHighlight", () => {
   it("does not throw for valid positions", () => {
     const results = findAllMatchPositions("me");
     expect(results).toHaveLength(1);
-    expect(() => scrollAndHighlight(results[0].from, results[0].to)).not.toThrow();
+    expect(() =>
+      scrollAndHighlight(results[0].from, results[0].to),
+    ).not.toThrow();
   });
 });

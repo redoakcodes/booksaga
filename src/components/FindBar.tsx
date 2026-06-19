@@ -1,6 +1,7 @@
 import {
   createEffect,
   createSignal,
+  on,
   onMount,
   Show,
   type Component,
@@ -28,13 +29,17 @@ const FindBar: Component<Props> = (props) => {
 
   onMount(() => findRef?.focus());
 
-  createEffect(() => {
-    props.fileKey;
-    setQuery("");
-    setReplaceText("");
-    setMatches([]);
-    setIdx(0);
-  });
+  createEffect(
+    on(
+      () => props.fileKey,
+      () => {
+        setQuery("");
+        setReplaceText("");
+        setMatches([]);
+        setIdx(0);
+      },
+    ),
+  );
 
   createEffect(() => {
     const q = query();
@@ -78,7 +83,10 @@ const FindBar: Component<Props> = (props) => {
   }
 
   function handleFindKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") { props.onClose(); return; }
+    if (e.key === "Escape") {
+      props.onClose();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       navigate(e.shiftKey ? -1 : 1);
@@ -86,7 +94,10 @@ const FindBar: Component<Props> = (props) => {
   }
 
   function handleReplaceKeyDown(e: KeyboardEvent) {
-    if (e.key === "Escape") { props.onClose(); return; }
+    if (e.key === "Escape") {
+      props.onClose();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       replace();
@@ -128,7 +139,11 @@ const FindBar: Component<Props> = (props) => {
         >
           ▼
         </button>
-        <button class="find-bar-close" title="Close (Escape)" onClick={props.onClose}>
+        <button
+          class="find-bar-close"
+          title="Close (Escape)"
+          onClick={() => props.onClose()}
+        >
           ×
         </button>
       </div>

@@ -204,8 +204,14 @@ enum LlmEvent {
 }
 
 enum ContentBlock {
-    Text { content: String },
-    ToolUse { id: String, name: String, json_accum: String },
+    Text {
+        content: String,
+    },
+    ToolUse {
+        id: String,
+        name: String,
+        json_accum: String,
+    },
 }
 
 enum LlmCallResult {
@@ -294,10 +300,7 @@ where
                             let btype = ev["content_block"]["type"].as_str().unwrap_or("");
                             let block = if btype == "tool_use" {
                                 ContentBlock::ToolUse {
-                                    id: ev["content_block"]["id"]
-                                        .as_str()
-                                        .unwrap_or("")
-                                        .to_owned(),
+                                    id: ev["content_block"]["id"].as_str().unwrap_or("").to_owned(),
                                     name: ev["content_block"]["name"]
                                         .as_str()
                                         .unwrap_or("")
@@ -305,7 +308,9 @@ where
                                     json_accum: String::new(),
                                 }
                             } else {
-                                ContentBlock::Text { content: String::new() }
+                                ContentBlock::Text {
+                                    content: String::new(),
+                                }
                             };
                             blocks.insert(idx, block);
                         }
@@ -313,8 +318,7 @@ where
                             let idx = ev["index"].as_u64().unwrap_or(0) as usize;
                             let dtype = ev["delta"]["type"].as_str().unwrap_or("");
                             if dtype == "text_delta" {
-                                let text =
-                                    ev["delta"]["text"].as_str().unwrap_or("").to_owned();
+                                let text = ev["delta"]["text"].as_str().unwrap_or("").to_owned();
                                 if !text.is_empty() {
                                     on_text(text.clone())?;
                                     if let Some(ContentBlock::Text { ref mut content }) =
@@ -329,8 +333,7 @@ where
                                     .unwrap_or("")
                                     .to_owned();
                                 if let Some(ContentBlock::ToolUse {
-                                    ref mut json_accum,
-                                    ..
+                                    ref mut json_accum, ..
                                 }) = blocks.get_mut(&idx)
                                 {
                                     json_accum.push_str(&partial);
@@ -354,7 +357,11 @@ where
             ContentBlock::Text { content } => {
                 serde_json::json!({"type": "text", "text": content})
             }
-            ContentBlock::ToolUse { id, name, json_accum } => {
+            ContentBlock::ToolUse {
+                id,
+                name,
+                json_accum,
+            } => {
                 let input: serde_json::Value =
                     serde_json::from_str(&json_accum).unwrap_or(serde_json::json!({}));
                 serde_json::json!({"type": "tool_use", "id": id, "name": name, "input": input})
@@ -388,12 +395,16 @@ async fn anthropic_stream(
 
     let url = base_url.as_deref().unwrap_or("https://api.anthropic.com");
     match call_llm_anthropic(&api_key, url, &model, &system, &messages, &tools, |text| {
-        on_event.send(LlmEvent::TextDelta { text }).map_err(|e| e.to_string())
+        on_event
+            .send(LlmEvent::TextDelta { text })
+            .map_err(|e| e.to_string())
     })
     .await?
     {
         LlmCallResult::Message(msg) => on_event
-            .send(LlmEvent::FinalMessage { json: msg.to_string() })
+            .send(LlmEvent::FinalMessage {
+                json: msg.to_string(),
+            })
             .map_err(|e| e.to_string())?,
         LlmCallResult::ToolsNotSupported => {}
     }
@@ -659,12 +670,16 @@ async fn ollama_stream(
         serde_json::from_str(&tools_json).map_err(|e| format!("invalid tools: {e}"))?;
 
     match call_llm_ollama(&endpoint, &model, &system, &messages, &tools, |text| {
-        on_event.send(LlmEvent::TextDelta { text }).map_err(|e| e.to_string())
+        on_event
+            .send(LlmEvent::TextDelta { text })
+            .map_err(|e| e.to_string())
     })
     .await?
     {
         LlmCallResult::Message(msg) => on_event
-            .send(LlmEvent::FinalMessage { json: msg.to_string() })
+            .send(LlmEvent::FinalMessage {
+                json: msg.to_string(),
+            })
             .map_err(|e| e.to_string())?,
         LlmCallResult::ToolsNotSupported => on_event
             .send(LlmEvent::ToolsNotSupported)
@@ -680,13 +695,33 @@ async fn ollama_stream(
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum SagaEvent {
-    Text { text: String },
-    ToolCall { name: String, args: serde_json::Value },
-    ToolResult { name: String, result: String, is_error: bool },
-    ConfirmNeeded { tool: String, args: serde_json::Value },
-    Notice { text: String },
-    Navigate { chapter: String, context: Option<String>, text: Option<String> },
-    Error { message: String },
+    Text {
+        text: String,
+    },
+    ToolCall {
+        name: String,
+        args: serde_json::Value,
+    },
+    ToolResult {
+        name: String,
+        result: String,
+        is_error: bool,
+    },
+    ConfirmNeeded {
+        tool: String,
+        args: serde_json::Value,
+    },
+    Notice {
+        text: String,
+    },
+    Navigate {
+        chapter: String,
+        context: Option<String>,
+        text: Option<String>,
+    },
+    Error {
+        message: String,
+    },
     Done,
 }
 
@@ -901,7 +936,10 @@ async fn saga_turn(
         let messages_val = {
             let guard = saga_state.0.lock().unwrap();
             serde_json::Value::Array(
-                guard.as_ref().map(|s| s.messages.clone()).unwrap_or_default(),
+                guard
+                    .as_ref()
+                    .map(|s| s.messages.clone())
+                    .unwrap_or_default(),
             )
         };
 
@@ -911,28 +949,51 @@ async fn saga_turn(
             let key = api_key
                 .as_deref()
                 .ok_or("No Anthropic API key configured.")?;
-            call_llm_anthropic(key, "https://api.anthropic.com", &model, &system, &messages_val, &tools_json, move |text| {
-                on_event_clone
-                    .send(SagaEvent::Text { text })
-                    .map_err(|e| e.to_string())
-            })
+            call_llm_anthropic(
+                key,
+                "https://api.anthropic.com",
+                &model,
+                &system,
+                &messages_val,
+                &tools_json,
+                move |text| {
+                    on_event_clone
+                        .send(SagaEvent::Text { text })
+                        .map_err(|e| e.to_string())
+                },
+            )
             .await
         } else if provider == "lmstudio" {
             let ep = endpoint.as_deref().unwrap_or("http://localhost:1234");
             let key = api_key.as_deref().unwrap_or("lm-studio");
-            call_llm_anthropic(key, ep, &model, &system, &messages_val, &tools_json, move |text| {
-                on_event_clone
-                    .send(SagaEvent::Text { text })
-                    .map_err(|e| e.to_string())
-            })
+            call_llm_anthropic(
+                key,
+                ep,
+                &model,
+                &system,
+                &messages_val,
+                &tools_json,
+                move |text| {
+                    on_event_clone
+                        .send(SagaEvent::Text { text })
+                        .map_err(|e| e.to_string())
+                },
+            )
             .await
         } else {
             let ep = endpoint.as_deref().unwrap_or("http://localhost:11434");
-            call_llm_ollama(ep, &model, &system, &messages_val, &tools_json, move |text| {
-                on_event_clone
-                    .send(SagaEvent::Text { text })
-                    .map_err(|e| e.to_string())
-            })
+            call_llm_ollama(
+                ep,
+                &model,
+                &system,
+                &messages_val,
+                &tools_json,
+                move |text| {
+                    on_event_clone
+                        .send(SagaEvent::Text { text })
+                        .map_err(|e| e.to_string())
+                },
+            )
             .await
         };
 
@@ -954,7 +1015,10 @@ async fn saga_turn(
                 let messages_val2 = {
                     let guard = saga_state.0.lock().unwrap();
                     serde_json::Value::Array(
-                        guard.as_ref().map(|s| s.messages.clone()).unwrap_or_default(),
+                        guard
+                            .as_ref()
+                            .map(|s| s.messages.clone())
+                            .unwrap_or_default(),
                     )
                 };
                 let empty_tools = serde_json::Value::Array(vec![]);
@@ -1019,10 +1083,7 @@ async fn saga_turn(
         };
 
         // Build assistant content blocks from final message
-        let content_arr = final_msg["content"]
-            .as_array()
-            .cloned()
-            .unwrap_or_default();
+        let content_arr = final_msg["content"].as_array().cloned().unwrap_or_default();
 
         // Append assistant turn to history
         {
@@ -1101,7 +1162,11 @@ async fn saga_turn(
                 let context = args["context"].as_str().map(str::to_owned);
                 let text = args["text"].as_str().map(str::to_owned);
                 on_event
-                    .send(SagaEvent::Navigate { chapter, context, text })
+                    .send(SagaEvent::Navigate {
+                        chapter,
+                        context,
+                        text,
+                    })
                     .map_err(|e| e.to_string())?;
             }
 
@@ -1125,17 +1190,11 @@ async fn saga_turn(
         }
     }
 
-    on_event
-        .send(SagaEvent::Done)
-        .map_err(|e| e.to_string())?;
+    on_event.send(SagaEvent::Done).map_err(|e| e.to_string())?;
     Ok(())
 }
 
-fn execute_write_tool(
-    name: &str,
-    args: &serde_json::Value,
-    root_path: &str,
-) -> (String, bool) {
+fn execute_write_tool(name: &str, args: &serde_json::Value, root_path: &str) -> (String, bool) {
     if root_path.is_empty() {
         return ("No project is open.".into(), true);
     }

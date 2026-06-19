@@ -104,10 +104,23 @@ export async function* streamLlmRequest(
         "No Anthropic API key configured. Add your key in Menu → Settings.",
       );
     }
-    yield* streamAnthropicRequest(apiKey, modelConfig.model, system, messages, tools);
+    yield* streamAnthropicRequest(
+      apiKey,
+      modelConfig.model,
+      system,
+      messages,
+      tools,
+    );
   } else if (modelConfig.provider === "lmstudio") {
     const endpoint = modelConfig.endpoint ?? "http://localhost:1234";
-    yield* streamAnthropicRequest("lm-studio", modelConfig.model, system, messages, tools, endpoint);
+    yield* streamAnthropicRequest(
+      "lm-studio",
+      modelConfig.model,
+      system,
+      messages,
+      tools,
+      endpoint,
+    );
   } else {
     const endpoint = modelConfig.endpoint ?? "http://localhost:11434";
     yield* drainChannel<LlmStreamEvent>((ch) =>

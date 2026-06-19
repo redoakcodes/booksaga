@@ -2,11 +2,7 @@ import { TextSelection } from "prosemirror-state";
 import { toggleMark, setBlockType, wrapIn } from "prosemirror-commands";
 import type { EditorView } from "prosemirror-view";
 import { editorSchema } from "./prosemirror";
-import {
-  findHighlightKey,
-  Decoration,
-  DecorationSet,
-} from "./findHighlight";
+import { findHighlightKey, Decoration, DecorationSet } from "./findHighlight";
 
 let _view: EditorView | null = null;
 
@@ -104,7 +100,8 @@ function flashHighlight(from: number, to: number) {
   ]);
   _view.dispatch(_view.state.tr.setMeta(findHighlightKey, deco));
   setTimeout(() => {
-    if (_view) _view.dispatch(_view.state.tr.setMeta(findHighlightKey, "clear"));
+    if (_view)
+      _view.dispatch(_view.state.tr.setMeta(findHighlightKey, "clear"));
   }, 1600);
 }
 
@@ -123,7 +120,10 @@ export function findAllMatchPositions(
     if (node.isText) textNodes.push({ pos, text: node.text! });
     return true;
   });
-  const flat = textNodes.map((n) => n.text).join("").toLowerCase();
+  const flat = textNodes
+    .map((n) => n.text)
+    .join("")
+    .toLowerCase();
   const needle = query.toLowerCase();
   const results: { from: number; to: number }[] = [];
 
@@ -134,11 +134,16 @@ export function findAllMatchPositions(
     const end = start + needle.length;
 
     // Mirrors scrollToText: strict > for start, >= for end
-    let from = -1, to = -1, offset = 0;
+    let from = -1,
+      to = -1,
+      offset = 0;
     for (const n of textNodes) {
       const len = n.text.length;
       if (from === -1 && offset + len > start) from = n.pos + (start - offset);
-      if (from !== -1 && offset + len >= end) { to = n.pos + (end - offset); break; }
+      if (from !== -1 && offset + len >= end) {
+        to = n.pos + (end - offset);
+        break;
+      }
       offset += len;
     }
     if (from !== -1 && to !== -1) results.push({ from, to });
@@ -147,7 +152,11 @@ export function findAllMatchPositions(
   return results;
 }
 
-export function replaceMatch(from: number, to: number, replacement: string): void {
+export function replaceMatch(
+  from: number,
+  to: number,
+  replacement: string,
+): void {
   if (!_view) return;
   _view.dispatch(_view.state.tr.insertText(replacement, from, to));
 }
@@ -176,7 +185,7 @@ export function scrollAndHighlight(from: number, to: number): void {
         scrollEl.scrollTop + coords.top - rect.top - rect.height / 2;
       scrollEl.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
     }
-  } catch { }
+  } catch {}
   flashHighlight(from, to);
 }
 
