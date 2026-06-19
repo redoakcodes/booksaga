@@ -147,6 +147,24 @@ export function findAllMatchPositions(
   return results;
 }
 
+export function replaceMatch(from: number, to: number, replacement: string): void {
+  if (!_view) return;
+  _view.dispatch(_view.state.tr.insertText(replacement, from, to));
+}
+
+export function replaceAllMatches(
+  matches: { from: number; to: number }[],
+  replacement: string,
+): void {
+  if (!_view || matches.length === 0) return;
+  let tr = _view.state.tr;
+  // Process last-to-first so earlier positions stay valid
+  for (let i = matches.length - 1; i >= 0; i--) {
+    tr = tr.insertText(replacement, matches[i].from, matches[i].to);
+  }
+  _view.dispatch(tr);
+}
+
 export function scrollAndHighlight(from: number, to: number): void {
   if (!_view) return;
   try {

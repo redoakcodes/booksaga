@@ -4,6 +4,8 @@ import {
   registerView,
   findAllMatchPositions,
   scrollAndHighlight,
+  replaceMatch,
+  replaceAllMatches,
 } from "../lib/editorCommands";
 import type { EditorView } from "prosemirror-view";
 
@@ -55,6 +57,77 @@ describe("findAllMatchPositions", () => {
   it("is case-insensitive", () => {
     expect(findAllMatchPositions("HELLO")).toHaveLength(2);
     expect(findAllMatchPositions("Hello")).toHaveLength(2);
+  });
+});
+
+describe("replaceMatch", () => {
+  let container: HTMLDivElement;
+  let view: EditorView;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    view = makeEditorView(container, "Hello world.", true, undefined, undefined);
+    registerView(view);
+  });
+
+  afterEach(() => {
+    registerView(null);
+    view.destroy();
+    document.body.removeChild(container);
+  });
+
+  it("replaces matched text with the replacement string", () => {
+    const results = findAllMatchPositions("world");
+    expect(results).toHaveLength(1);
+    replaceMatch(results[0].from, results[0].to, "earth");
+    expect(view.state.doc.textContent).toContain("earth");
+    expect(view.state.doc.textContent).not.toContain("world");
+  });
+
+  it("deletes matched text when replacement is empty", () => {
+    const results = findAllMatchPositions("world");
+    replaceMatch(results[0].from, results[0].to, "");
+    expect(view.state.doc.textContent).not.toContain("world");
+  });
+});
+
+describe("replaceAllMatches", () => {
+  let container: HTMLDivElement;
+  let view: EditorView;
+
+  beforeEach(() => {
+    container = document.createElement("div");
+    document.body.appendChild(container);
+    view = makeEditorView(
+      container,
+      "cat and cat and cat.",
+      true,
+      undefined,
+      undefined,
+    );
+    registerView(view);
+  });
+
+  afterEach(() => {
+    registerView(null);
+    view.destroy();
+    document.body.removeChild(container);
+  });
+
+  it("replaces all occurrences in a single transaction", () => {
+    const results = findAllMatchPositions("cat");
+    expect(results).toHaveLength(3);
+    replaceAllMatches(results, "dog");
+    const text = view.state.doc.textContent;
+    expect(text).not.toContain("cat");
+    expect(text.match(/dog/g)).toHaveLength(3);
+  });
+
+  it("deletes all occurrences when replacement is empty", () => {
+    const results = findAllMatchPositions("cat");
+    replaceAllMatches(results, "");
+    expect(view.state.doc.textContent).not.toContain("cat");
   });
 });
 

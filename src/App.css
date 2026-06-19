@@ -446,13 +446,19 @@ html, body, #root {
   right: 16px;
   z-index: 30;
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 5px 8px;
+  padding: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.find-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .find-bar-input {
@@ -491,6 +497,8 @@ html, body, #root {
 
 .find-bar-btn:hover:not(:disabled) { color: var(--text); background: var(--hover-bg-sm); }
 .find-bar-btn:disabled { opacity: 0.4; cursor: default; }
+
+.find-bar-replace-btn { padding: 2px 8px; font-size: 12px; }
 
 .find-bar-close {
   background: none;
